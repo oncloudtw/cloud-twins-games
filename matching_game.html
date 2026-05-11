@@ -306,6 +306,7 @@
             const typeIdx = headerRow.findIndex(c => c && c.includes('類別'));
             const idiomIdx = headerRow.findIndex(c => c && (c.includes('詞彙') || c.includes('成語')));
             const meaningIdx = headerRow.findIndex(c => c && c.includes('解釋'));
+            const charIdx = headerRow.findIndex(c => c && (c.includes('字形') || c.includes('國字')));
 
             if (idiomIdx === -1 || meaningIdx === -1) return;
 
@@ -322,13 +323,17 @@
                 const type = typeIdx >= 0 ? (row.c[typeIdx]?.v || '') : '';
                 const idiom = row.c[idiomIdx]?.v;
                 const meaning = row.c[meaningIdx]?.v;
+                const targetChar = charIdx >= 0 ? (row.c[charIdx]?.v || '') : '';
                 
                 // 如果表格內有單元欄位且有值就用它，否則用工作表名稱
                 let unit = unitIdx >= 0 && row.c[unitIdx]?.v ? row.c[unitIdx].v : formattedSheetName;
 
                 if (idiom && meaning && meaning !== '(無)' && meaning !== '(教材無特別註解)') {
                     // 根據要求：從試算表中的"類別"欄位抓取"成語"的部分
-                    if (type && type.includes('成語')) {
+                    // 如果類別是「試題補充」，且沒有明確的指定字形考點，且字串長度大於等於 3，就當作是成語
+                    let isIdiomType = type && (type.includes('成語') || (type.includes('試題補充') && idiom.length >= 3 && !targetChar));
+                    
+                    if (isIdiomType) {
                         allIdiomsData.push({
                             unit: unit.trim(),
                             idiom: idiom.trim(),

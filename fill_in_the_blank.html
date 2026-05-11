@@ -338,8 +338,13 @@
 
                         if (!vocab) continue;
 
-                        // 針對「字形」或「字音」進行抓題
-                        if (type.includes('字形') || type.includes('字音')) {
+                        // 判斷題型：
+                        // 如果明確標示「字形」或「字音」，則依照標示
+                        // 如果是「試題補充」，則看有無指定考點字 (targetChar) 或注音 (bopomofo) 來判斷是否為字形字音考題
+                        let isShapeType = type.includes('字形') || (type.includes('試題補充') && targetChar);
+                        let isSoundType = type.includes('字音') || (type.includes('試題補充') && !targetChar && bopomofo);
+
+                        if (isShapeType || isSoundType) {
                             let answer = '';
                             let hint = '';
 
@@ -350,7 +355,7 @@
                             // 決定這題要考的核心單字（若字形欄位為空，退回用詞彙）
                             let focusChar = targetChar.trim() || vocab.trim();
 
-                            if (type.includes('字形')) {
+                            if (isShapeType) {
                                 // 考國字：答案是單一國字
                                 answer = focusChar;
                                 
@@ -376,7 +381,7 @@
                                 if (extras.length > 0) {
                                     hint += `\n\n(${extras.join('，')})`;
                                 }
-                            } else if (type.includes('字音')) {
+                            } else if (isSoundType) {
                                 // 考注音：如果有多個注音（以空白分隔），則只取出目標字的那個注音
                                 let targetBopomofo = cleanBopomofo.trim();
                                 if (targetBopomofo) {
