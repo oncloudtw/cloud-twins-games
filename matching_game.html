@@ -323,7 +323,8 @@
                 const type = typeIdx >= 0 ? (row.c[typeIdx]?.v || '') : '';
                 const idiom = row.c[idiomIdx]?.v;
                 const meaning = row.c[meaningIdx]?.v;
-                const targetChar = charIdx >= 0 ? (row.c[charIdx]?.v || '') : '';
+                let targetChar = charIdx >= 0 ? (row.c[charIdx]?.v || '') : '';
+                if (targetChar === '(無)' || targetChar === '(教材無特別註解)') targetChar = '';
                 
                 // 如果表格內有單元欄位且有值就用它，否則用工作表名稱
                 let unit = unitIdx >= 0 && row.c[unitIdx]?.v ? row.c[unitIdx].v : formattedSheetName;

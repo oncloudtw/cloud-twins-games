@@ -329,7 +329,9 @@
 
                         const type = typeIdx >= 0 ? (row.c[typeIdx]?.v || '') : '';
                         const vocab = row.c[vocabIdx]?.v;
-                        const targetChar = charIdx >= 0 ? (row.c[charIdx]?.v || '') : '';
+                        let targetChar = charIdx >= 0 ? (row.c[charIdx]?.v || '') : '';
+                        if (targetChar === '(無)' || targetChar === '(教材無特別註解)') targetChar = '';
+
                         const bopomofo = bopomofoIdx >= 0 ? (row.c[bopomofoIdx]?.v || '') : '';
                         const exp = expIdx >= 0 ? (row.c[expIdx]?.v || '') : '';
                         const sentence = sentenceIdx >= 0 ? (row.c[sentenceIdx]?.v || '') : '';
