@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方寸語文：成語連連看</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#bbf7d0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* 答錯時的震動動畫 */
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px) rotate(-1deg);
+            }
+
+            50% {
+                transform: translateX(5px) rotate(1deg);
+            }
+
+            75% {
+                transform: translateX(-5px) rotate(-1deg);
+            }
+        }
+
+        .shake-animation {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* 出現時的動畫 */
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* 繪製連線的 SVG 容器設定 */
+        #svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .path-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawLine 0.5s ease-out forwards;
+        }
+
+        @keyframes drawLine {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* 隱藏捲軸但可捲動 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen text-slate-800 flex flex-col items-center py-8 px-4 overflow-x-hidden">
+
+    <!-- 頁首標題 -->
+    <header class="text-center mb-8 w-full max-w-4xl pop-in">
+        <h1
+            class="text-4xl md:text-5xl font-black text-emerald-600 mb-3 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
+            <i class="ph-fill ph-puzzle-piece"></i> 成語連連看
+        </h1>
+        <p class="text-emerald-700/80 font-medium">看懂成語，輕鬆配對！將左邊的成語連到右邊正確的解釋。</p>
+    </header>
+
+    <!-- 遊戲主要容器 -->
+    <main
+        class="w-full max-w-4xl bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-emerald-100 overflow-hidden relative min-h-[60vh] flex flex-col pop-in">
+
+        <!-- =================== 畫面一：設定與選單 =================== -->
+        <div id="screen-menu" class="p-8 flex-1 flex flex-col justify-center items-center">
+
+            <div class="bg-emerald-50 rounded-2xl p-6 md:p-10 w-full max-w-md shadow-inner border border-emerald-100">
+                <h2 class="text-2xl font-bold text-center text-emerald-800 mb-6">選擇挑戰單元</h2>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-bold text-emerald-700 mb-2">請選擇：</label>
+                        <select id="unit-select"
+                            class="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 bg-white text-lg focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer font-medium text-slate-700">
+                            <option disabled selected>正在掃描題庫中...</option>
+                        </select>
+                    </div>
+
+                    <button id="btn-start" disabled
+                        class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 opacity-50 cursor-not-allowed">
+                        <i class="ph-bold ph-spinner animate-spin" id="start-icon"></i> <span
+                            id="start-text">載入中...</span>
+                    </button>
+                </div>
+            </div>
+
+            <p class="mt-6 text-sm text-slate-500">
+                系統會自動掃描試算表中所有工作表的「單元」欄位。
+            </p>
+        </div>
+
+
+        <!-- =================== 畫面二：遊戲區 =================== -->
+        <div id="screen-game" class="hidden flex-1 flex flex-col relative">
+
+            <!-- 遊戲區標頭 -->
+            <div class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
+                <button id="btn-back"
+                    class="flex items-center gap-1 font-bold text-emerald-100 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20">
+                    <i class="ph-bold ph-arrow-left"></i> 返回
+                </button>
+                <h2 id="current-unit-title" class="text-xl font-black tracking-wide">第二單元</h2>
+                <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm">
+                    進度: <span id="progress-text">0/0</span>
+                </div>
+            </div>
+
+            <!-- 提示訊息 -->
+            <div id="toast-message"
+                class="absolute top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-2 rounded-full font-bold shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50 text-sm">
+                配對成功！
+            </div>
+
+            <!-- 遊戲面板 (含左右兩欄) -->
+            <div id="game-board" class="flex-1 p-4 md:p-8 relative overflow-hidden flex flex-col justify-center">
+
+                <!-- SVG 用於畫連線 -->
+                <svg id="svg-layer"></svg>
+
+                <div class="flex justify-between max-w-4xl w-full mx-auto relative z-20 gap-4 md:gap-12">
+
+                    <!-- 左欄：成語 -->
+                    <div class="w-5/12 md:w-1/3 flex flex-col gap-3 md:gap-4 justify-center" id="col-idioms">
+                        <!-- JS 動態生成 -->
+                    </div>
+
+                    <!-- 右欄：解釋 -->
+                    <div class="w-7/12 md:w-2/3 flex flex-col gap-3 md:gap-4 justify-center" id="col-meanings">
+                        <!-- JS 動態生成 -->
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- 過關蓋板 -->
+            <div id="modal-success"
+                class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 hidden flex-col justify-center items-center p-6 text-center">
+                <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-star"></i></div>
+                <h2 class="text-3xl font-black text-emerald-700 mb-2">太棒了！完全正確！</h2>
+                <p id="success-desc" class="text-slate-600 font-medium mb-8">您已經完成本回合的配對。</p>
+                <div class="flex gap-4">
+                    <button id="btn-next-batch"
+                        class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                        下一批成語 <i class="ph-bold ph-arrow-right"></i>
+                    </button>
+                    <button id="btn-finish-unit"
+                        class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                        回主選單 <i class="ph-bold ph-house"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // ==========================================
+        // 1. 系統狀態與變數
+        // ==========================================
+        const SHEET_ID = '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo';
+
+        let allIdiomsData = []; // 包含所有掃描到的資料
+        let unitsList = [];     // 單元清單
+
+        // 遊戲中狀態
+        let currentUnitData = []; // 該單元所有成語
+        let currentBatch = [];    // 當前畫面上的這一批成語 (最多 5 個)
+        let batchIndex = 0;       // 已經完成幾批
+        const BATCH_SIZE = 5;     // 每次顯示題數
+
+        let selectedIdiom = null; // 點擊的左側項目 {id, element}
+        let selectedMeaning = null; // 點擊的右側項目 {id, element}
+        let matchedPairs = [];    // 紀錄已配對成功的連線 {idiomElem, meaningElem}
+
+        // ==========================================
+        // 2. 初始化與資料處理 (從 Google Sheets 掃描)
+        // ==========================================
+        async function initData() {
+            const select = document.getElementById('unit-select');
+            const btnStart = document.getElementById('btn-start');
+            const startIcon = document.getElementById('start-icon');
+            const startText = document.getElementById('start-text');
+
+            try {
+                const baseUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+
+                // 1. 取得預設工作表
+                const defaultRes = await fetch(baseUrl);
+                const defaultText = await defaultRes.text();
+                const defaultJson = JSON.parse(defaultText.match(/(?<=.*\().*(?=\);)/s)[0]);
+                const defaultSig = defaultJson.sig;
+                
+                parseAndAddData(defaultJson, '預設單元');
+
+                // 2. 掃描所有可能的工作表，確保不會漏掉不同分頁的資料
+                const sheetNamesToTry = [];
+                const chineseMap = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
+                for(let i=1; i<=20; i++) {
+                    sheetNamesToTry.push(i.toString());
+                    sheetNamesToTry.push(`第${chineseMap[i-1]}單元`);
+                }
+
+                const promises = sheetNamesToTry.map(name => {
+                    return fetch(`${baseUrl}&sheet=${encodeURIComponent(name)}`)
+                        .then(res => res.text())
+                        .then(text => {
+                            if (text.includes('"status":"error"')) return null;
+                            const json = JSON.parse(text.match(/(?<=.*\().*(?=\);)/s)[0]);
+                            if (json.sig === defaultSig) return null; // 代表退回到預設表，忽略
+                            return { json, name };
+                        }).catch(() => null);
+                });
+
+                const results = await Promise.all(promises);
+                const seenSigs = new Set([defaultSig]);
+                results.forEach(res => {
+                    if (res && res.json && !seenSigs.has(res.json.sig)) {
+                        seenSigs.add(res.json.sig);
+                        parseAndAddData(res.json, res.name);
+                    }
+                });
+
+                updateUnitSelect();
+
+            } catch (error) {
+                console.error("讀取試算表失敗：", error);
+                select.innerHTML = '<option disabled>讀取失敗，請確認網路連線或試算表權限</option>';
+                startText.textContent = "讀取失敗";
+                startIcon.className = "ph-bold ph-warning";
+            }
+        }
+
+        function parseAndAddData(data, fallbackSheetName) {
+            let headerRow = data.table.cols.map(c => c.label);
+            let startIndex = 0;
+            if (!headerRow.some(label => label)) {
+                headerRow = data.table.rows[0].c.map(cell => cell ? cell.v : '');
+                startIndex = 1;
+            }
+
+            const unitIdx = headerRow.findIndex(c => c && c.includes('單元'));
+            const typeIdx = headerRow.findIndex(c => c && c.includes('類別'));
+            const idiomIdx = headerRow.findIndex(c => c && (c.includes('詞彙') || c.includes('成語')));
+            const meaningIdx = headerRow.findIndex(c => c && c.includes('解釋'));
+
+            if (idiomIdx === -1 || meaningIdx === -1) return;
+
+            // 如果工作表名稱是純數字，加上「第 X 單元」讓顯示更好看
+            let formattedSheetName = fallbackSheetName;
+            if (!isNaN(fallbackSheetName)) {
+                formattedSheetName = `第 ${fallbackSheetName} 單元`;
+            }
+
+            for (let i = startIndex; i < data.table.rows.length; i++) {
+                const row = data.table.rows[i];
+                if (!row || !row.c) continue;
+
+                const type = typeIdx >= 0 ? (row.c[typeIdx]?.v || '') : '';
+                const idiom = row.c[idiomIdx]?.v;
+                const meaning = row.c[meaningIdx]?.v;
+                
+                // 如果表格內有單元欄位且有值就用它，否則用工作表名稱
+                let unit = unitIdx >= 0 && row.c[unitIdx]?.v ? row.c[unitIdx].v : formattedSheetName;
+
+                if (idiom && meaning && meaning !== '(無)' && meaning !== '(教材無特別註解)') {
+                    // 根據要求：從試算表中的"類別"欄位抓取"成語"的部分
+                    if (type && type.includes('成語')) {
+                        allIdiomsData.push({
+                            unit: unit.trim(),
+                            idiom: idiom.trim(),
+                            meaning: meaning.trim()
+                        });
+                    }
+                }
+            }
+        }
+
+        // 提取單元數字以便排序
+        function getUnitNumber(unitStr) {
+            const match = unitStr.match(/\d+/);
+            if (match) return parseInt(match[0], 10);
+            const map = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10 };
+            const cMatch = unitStr.match(/[一二三四五六七八九十]/);
+            if (cMatch) return map[cMatch[0]];
+            return 999;
+        }
+
+        function updateUnitSelect() {
+            const select = document.getElementById('unit-select');
+            const btnStart = document.getElementById('btn-start');
+            const startIcon = document.getElementById('start-icon');
+            const startText = document.getElementById('start-text');
+
+            // 取得所有不重複且非空白的單元名稱，並排序
+            unitsList = [...new Set(allIdiomsData.map(item => item.unit).filter(u => u))];
+            unitsList.sort((a, b) => getUnitNumber(a) - getUnitNumber(b));
+
+            select.innerHTML = '';
+
+            if (unitsList.length === 0) {
+                select.innerHTML = '<option disabled>試算表中找不到任何成語資料</option>';
+                startText.textContent = "無資料";
+                startIcon.className = "ph-bold ph-warning";
+                return;
+            }
+
+            unitsList.forEach(unit => {
+                const count = allIdiomsData.filter(i => i.unit === unit).length;
+                const option = document.createElement('option');
+                option.value = unit;
+                option.textContent = `${unit} (共 ${count} 題)`;
+                select.appendChild(option);
+            });
+
+            // 啟用按鈕
+            btnStart.disabled = false;
+            btnStart.classList.remove('opacity-50', 'cursor-not-allowed');
+            startIcon.className = "ph-bold ph-play";
+            startText.textContent = "開始遊戲";
+        }
+
+
+        // ==========================================
+        // 3. 遊戲主邏輯
+        // ==========================================
+
+        // 洗牌演算法
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // 開始遊戲
+        document.getElementById('btn-start').addEventListener('click', () => {
+            const unit = document.getElementById('unit-select').value;
+            if (!unit) return;
+
+            // 篩選該單元所有成語，並打亂順序
+            currentUnitData = shuffleArray(allIdiomsData.filter(item => item.unit === unit));
+            batchIndex = 0;
+
+            document.getElementById('current-unit-title').textContent = unit;
+
+            // 切換畫面
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            document.getElementById('screen-game').classList.add('pop-in');
+
+            loadBatch();
+        });
+
+        // 載入當前回合
+        function loadBatch() {
+            // 清除狀態
+            selectedIdiom = null;
+            selectedMeaning = null;
+            matchedPairs = [];
+            clearLines();
+            document.getElementById('modal-success').classList.add('hidden');
+
+            // 取出這批資料
+            currentBatch = currentUnitData.slice(batchIndex * BATCH_SIZE, (batchIndex + 1) * BATCH_SIZE);
+
+            updateProgressText();
+
+            // 產生隨機順序的左欄與右欄
+            const leftItems = shuffleArray([...currentBatch]);
+            const rightItems = shuffleArray([...currentBatch]);
+
+            const colIdioms = document.getElementById('col-idioms');
+            const colMeanings = document.getElementById('col-meanings');
+
+            colIdioms.innerHTML = '';
+            colMeanings.innerHTML = '';
+
+            // 建立左欄按鈕 (成語)
+            leftItems.forEach((item, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'idiom-btn w-full bg-white border-2 border-emerald-200 text-emerald-800 font-bold text-lg md:text-2xl py-4 md:py-5 px-2 rounded-2xl shadow-sm hover:border-emerald-400 hover:shadow-md transition-all active:scale-95 z-30 select-none';
+                btn.textContent = item.idiom;
+                btn.dataset.id = item.idiom; // 使用成語字面當 ID
+                btn.style.animationDelay = `${index * 0.1}s`;
+                btn.classList.add('pop-in');
+
+                btn.addEventListener('click', () => selectItem('idiom', btn));
+                colIdioms.appendChild(btn);
+            });
+
+            // 建立右欄卡片 (解釋)
+            rightItems.forEach((item, index) => {
+                const card = document.createElement('button');
+                card.className = 'meaning-btn w-full bg-white border-2 border-slate-200 text-slate-700 font-medium text-sm md:text-lg py-3 md:py-4 px-4 rounded-2xl shadow-sm hover:border-emerald-400 hover:shadow-md transition-all text-left z-30 active:scale-95 select-none';
+                card.textContent = item.meaning;
+                card.dataset.id = item.idiom; // 對應的成語 ID，用於檢查答案
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.classList.add('pop-in');
+
+                card.addEventListener('click', () => selectItem('meaning', card));
+                colMeanings.appendChild(card);
+            });
+        }
+
+        // 點擊選擇邏輯
+        function selectItem(type, element) {
+            // 如果已經配對過，不反應
+            if (element.classList.contains('matched')) return;
+
+            // 處理左欄
+            if (type === 'idiom') {
+                if (selectedIdiom) selectedIdiom.element.classList.remove('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+                selectedIdiom = { id: element.dataset.id, element: element };
+                element.classList.add('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+            }
+            // 處理右欄
+            else {
+                if (selectedMeaning) selectedMeaning.element.classList.remove('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+                selectedMeaning = { id: element.dataset.id, element: element };
+                element.classList.add('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+            }
+
+            // 檢查配對
+            if (selectedIdiom && selectedMeaning) {
+                checkMatch();
+            }
+        }
+
+        // 檢查配對是否成功
+        function checkMatch() {
+            const idiomElem = selectedIdiom.element;
+            const meaningElem = selectedMeaning.element;
+
+            if (selectedIdiom.id === selectedMeaning.id) {
+                // 配對成功
+                showToast("正確！", "success");
+
+                // 改變顏色為成功狀態
+                [idiomElem, meaningElem].forEach(el => {
+                    el.classList.remove('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+                    el.classList.add('bg-green-500', 'text-white', 'border-green-600', 'matched', 'shadow-inner');
+                    el.classList.remove('text-emerald-800', 'text-slate-700', 'hover:border-emerald-400');
+                });
+
+                // 畫線紀錄
+                matchedPairs.push({ left: idiomElem, right: meaningElem });
+                drawAllLines();
+
+                // 清空選擇
+                selectedIdiom = null;
+                selectedMeaning = null;
+
+                // 檢查是否全對
+                checkBatchComplete();
+
+            } else {
+                // 配對失敗
+                showToast("不對喔，再試試！", "error");
+
+                // 移除選取樣式並加入震動動畫
+                [idiomElem, meaningElem].forEach(el => {
+                    el.classList.remove('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+                    el.classList.add('bg-red-100', 'border-red-400', 'shake-animation');
+
+                    // 動畫結束後移除錯誤樣式
+                    setTimeout(() => {
+                        el.classList.remove('bg-red-100', 'border-red-400', 'shake-animation');
+                    }, 400);
+                });
+
+                selectedIdiom = null;
+                selectedMeaning = null;
+            }
+        }
+
+        // 檢查當前批次是否完成
+        function checkBatchComplete() {
+            if (matchedPairs.length === currentBatch.length) {
+                // 更新進度
+                const currentMatched = Math.min((batchIndex + 1) * BATCH_SIZE, currentUnitData.length);
+                document.getElementById('progress-text').textContent = `${currentMatched}/${currentUnitData.length}`;
+
+                setTimeout(() => {
+                    const modal = document.getElementById('modal-success');
+                    const isFullyComplete = ((batchIndex + 1) * BATCH_SIZE) >= currentUnitData.length;
+
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+
+                    if (isFullyComplete) {
+                        document.getElementById('success-desc').textContent = "恭喜您完成了本單元所有的成語！";
+                        document.getElementById('btn-next-batch').classList.add('hidden');
+                        document.getElementById('btn-finish-unit').classList.remove('hidden');
+                    } else {
+                        document.getElementById('success-desc').textContent = "繼續挑戰下一批成語。";
+                        document.getElementById('btn-next-batch').classList.remove('hidden');
+                        document.getElementById('btn-finish-unit').classList.add('hidden');
+                    }
+                }, 800); // 等待最後一條線畫完
+            }
+        }
+
+        // 更新進度文字
+        function updateProgressText() {
+            const currentCount = batchIndex * BATCH_SIZE;
+            document.getElementById('progress-text').textContent = `${currentCount}/${currentUnitData.length}`;
+        }
+
+        // 下一批 / 結束
+        document.getElementById('btn-next-batch').addEventListener('click', () => {
+            batchIndex++;
+            loadBatch();
+        });
+
+        document.getElementById('btn-finish-unit').addEventListener('click', () => {
+            returnToMenu();
+        });
+
+        document.getElementById('btn-back').addEventListener('click', () => {
+            if (confirm("確定要中斷目前的遊戲回到選單嗎？")) {
+                returnToMenu();
+            }
+        });
+
+        function returnToMenu() {
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+            clearLines();
+        }
+
+        // ==========================================
+        // 4. SVG 畫線與介面輔助邏輯
+        // ==========================================
+
+        function clearLines() {
+            document.getElementById('svg-layer').innerHTML = '';
+        }
+
+        function drawAllLines() {
+            clearLines();
+            matchedPairs.forEach(pair => {
+                drawLineBetween(pair.left, pair.right);
+            });
+        }
+
+        // 在兩個 DOM 元素之間畫貝茲曲線
+        function drawLineBetween(elem1, elem2) {
+            const svg = document.getElementById('svg-layer');
+            const svgRect = svg.getBoundingClientRect();
+            const rect1 = elem1.getBoundingClientRect();
+            const rect2 = elem2.getBoundingClientRect();
+
+            // 計算連接點 (左欄右側中心點 -> 右欄左側中心點)
+            const x1 = rect1.right - svgRect.left;
+            const y1 = rect1.top + (rect1.height / 2) - svgRect.top;
+            const x2 = rect2.left - svgRect.left;
+            const y2 = rect2.top + (rect2.height / 2) - svgRect.top;
+
+            // 建立路徑 (使用 S 形貝茲曲線讓線條更柔和)
+            const controlPointOffset = 50;
+            const d = `M ${x1} ${y1} C ${x1 + controlPointOffset} ${y1}, ${x2 - controlPointOffset} ${y2}, ${x2} ${y2}`;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", d);
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", "#22c55e"); // Tailwind green-500
+            path.setAttribute("stroke-width", "4");
+            path.setAttribute("stroke-linecap", "round");
+            path.classList.add('path-line');
+
+            svg.appendChild(path);
+        }
+
+        // 視窗縮放時重畫連線，確保線條對齊
+        window.addEventListener('resize', () => {
+            if (document.getElementById('screen-game').classList.contains('hidden') === false) {
+                // 防抖動處理 (Debounce)
+                clearTimeout(window.resizeTimer);
+                window.resizeTimer = setTimeout(drawAllLines, 100);
+            }
+        });
+
+        // 提示訊息小黑窗
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+
+            if (type === 'error') {
+                toast.classList.replace('bg-slate-800', 'bg-red-600');
+            } else {
+                toast.classList.replace('bg-red-600', 'bg-slate-800');
+            }
+
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100', 'translate-y-4');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-4');
+                toast.classList.add('opacity-0');
+            }, 1000);
+        }
+
+        // 啟動系統，自動掃描試算表
+        initData();
+
+    </script>
+</body>
+
+</html>

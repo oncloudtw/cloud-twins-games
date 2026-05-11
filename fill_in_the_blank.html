@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字音字形填空遊戲</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --secondary: #10B981;
+            --bg-color: #F3F4F6;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-main: #1F2937;
+            --text-muted: #6B7280;
+            --error: #EF4444;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #E0E7FF 0%, #F3E8FF 100%);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--text-main);
+        }
+
+        #app {
+            width: 100%;
+            max-width: 600px;
+            padding: 20px;
+        }
+
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            margin-top: 0;
+            font-size: 28px;
+        }
+
+        .unit-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #D1D5DB;
+            font-size: 16px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+
+        .question-container {
+            margin: 30px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .hint-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .hint-text {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+        }
+
+        .input-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .answer-input {
+            width: 80%;
+            padding: 15px;
+            font-size: 24px;
+            text-align: center;
+            border: 2px dashed #9CA3AF;
+            border-radius: 12px;
+            background: transparent;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            border-style: solid;
+            background: white;
+        }
+
+        .answer-input.correct {
+            border-color: var(--secondary);
+            border-style: solid;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--secondary);
+        }
+
+        .answer-input.incorrect {
+            border-color: var(--error);
+            border-style: solid;
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #E5E7EB;
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: #D1D5DB;
+        }
+
+        .feedback {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            margin-top: 15px;
+            min-height: 27px;
+        }
+
+        .feedback.correct-text {
+            color: var(--secondary);
+        }
+
+        .feedback.incorrect-text {
+            color: var(--error);
+        }
+
+        .progress {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        /* 載入中動畫 */
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="app">
+        <div class="glass-card">
+            <h1>📝 字音字形填空</h1>
+
+            <div class="unit-selector">
+                <label>選擇單元：</label>
+                <select v-model="currentUnit" @change="loadUnitData">
+                    <option v-for="unit in availableUnits" :value="unit">{{ unit }}</option>
+                </select>
+            </div>
+
+            <div v-if="loading" class="loader"></div>
+
+            <div v-else-if="questions.length > 0">
+                <div class="question-container">
+                    <div class="hint-label">提示 (解釋 / 例句)：</div>
+                    <div class="hint-text">{{ currentQuestion.hint }}</div>
+
+                    <div class="input-area">
+                        <input type="text" id="answerInput" v-model="userAnswer" @keyup.enter="checkAnswer"
+                            :class="['answer-input', inputStatus]" placeholder="請點擊此處使用手寫或鍵盤輸入"
+                            :disabled="inputStatus === 'correct'">
+                    </div>
+                </div>
+
+                <div class="feedback" :class="inputStatus + '-text'">
+                    {{ feedbackMessage }}
+                </div>
+
+                <div class="controls">
+                    <button class="btn-secondary" @click="prevQuestion" :disabled="currentIndex === 0">⬅️ 上一題</button>
+                    <button class="btn-secondary" @click="showAnswer">👀 看解答</button>
+                    <button class="btn-primary" @click="nextQuestion">下一題 ➔</button>
+                </div>
+
+                <div class="progress">
+                    進度：{{ currentIndex + 1 }} / {{ questions.length }}
+                </div>
+            </div>
+            <div v-else style="text-align: center; color: #6B7280; padding: 20px;">
+                目前沒有題目資料，請確認試算表設定。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        // 這裡是您的試算表 ID
+        const SHEET_ID = '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo';
+
+        createApp({
+            setup() {
+                const availableUnits = ref([]);
+                const currentUnit = ref('');
+                const allDataRows = ref([]);
+                const questions = ref([]);
+                const currentIndex = ref(0);
+                const userAnswer = ref('');
+                const inputStatus = ref(''); // '', 'correct', 'incorrect'
+                const feedbackMessage = ref('');
+                const loading = ref(true);
+
+                const currentQuestion = computed(() => {
+                    return questions.value[currentIndex.value] || {};
+                });
+
+                // 提取單元數字以便排序
+                const getUnitNumber = (unitStr) => {
+                    const match = unitStr.match(/\d+/);
+                    if (match) return parseInt(match[0], 10);
+                    const map = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+                    const cMatch = unitStr.match(/[一二三四五六七八九十]/);
+                    if (cMatch) return map[cMatch[0]];
+                    return 999;
+                };
+
+                const parseAndAddData = (data, fallbackSheetName) => {
+                    let headerRow = data.table.cols.map(c => c.label);
+                    let startIndex = 0;
+                    if (!headerRow.some(label => label)) {
+                        headerRow = data.table.rows[0].c.map(cell => cell ? cell.v : '');
+                        startIndex = 1;
+                    }
+
+                    const unitIdx = headerRow.findIndex(c => c && c.includes('單元'));
+                    const typeIdx = headerRow.findIndex(c => c && c.includes('類別'));
+                    const vocabIdx = headerRow.findIndex(c => c && (c.includes('詞彙') || c.includes('成語') || c.includes('字形')));
+                    const charIdx = headerRow.findIndex(c => c && (c.includes('字形') || c.includes('國字')));
+                    const bopomofoIdx = headerRow.findIndex(c => c && c.includes('注音'));
+                    const expIdx = headerRow.findIndex(c => c && c.includes('解釋'));
+                    const sentenceIdx = headerRow.findIndex(c => c && c.includes('例句'));
+
+                    if (vocabIdx === -1) return;
+
+                    // 如果工作表名稱是純數字，加上「第 X 單元」讓顯示更好看
+                    let formattedSheetName = fallbackSheetName;
+                    if (!isNaN(fallbackSheetName)) {
+                        formattedSheetName = `第 ${fallbackSheetName} 單元`;
+                    }
+
+                    for (let i = startIndex; i < data.table.rows.length; i++) {
+                        const row = data.table.rows[i];
+                        if (!row || !row.c) continue;
+
+                        const type = typeIdx >= 0 ? (row.c[typeIdx]?.v || '') : '';
+                        const vocab = row.c[vocabIdx]?.v;
+                        const targetChar = charIdx >= 0 ? (row.c[charIdx]?.v || '') : '';
+                        const bopomofo = bopomofoIdx >= 0 ? (row.c[bopomofoIdx]?.v || '') : '';
+                        const exp = expIdx >= 0 ? (row.c[expIdx]?.v || '') : '';
+                        const sentence = sentenceIdx >= 0 ? (row.c[sentenceIdx]?.v || '') : '';
+                        
+                        let unit = unitIdx >= 0 && row.c[unitIdx]?.v ? row.c[unitIdx].v : formattedSheetName;
+
+                        if (!vocab) continue;
+
+                        // 針對「字形」或「字音」進行抓題
+                        if (type.includes('字形') || type.includes('字音')) {
+                            let answer = '';
+                            let hint = '';
+
+                            let cleanSentence = (sentence && sentence !== '(無)' && sentence !== '(教材無特別註解)') ? sentence : '';
+                            let cleanExp = (exp && exp !== '(無)' && exp !== '(教材無特別註解)') ? exp : '';
+                            let cleanBopomofo = (bopomofo && bopomofo !== '(無)' && bopomofo !== '(教材無特別註解)') ? bopomofo : '';
+
+                            // 決定這題要考的核心單字（若字形欄位為空，退回用詞彙）
+                            let focusChar = targetChar.trim() || vocab.trim();
+
+                            if (type.includes('字形')) {
+                                // 考國字：答案是單一國字
+                                answer = focusChar;
+                                
+                                // 製作挖空提示
+                                let maskedVocab = vocab;
+                                if (vocab.includes(focusChar)) {
+                                    maskedVocab = vocab.replace(new RegExp(focusChar, 'g'), '（　）');
+                                } else {
+                                    maskedVocab = `（　）` + (vocab !== focusChar ? ` (相關詞：${vocab})` : '');
+                                }
+
+                                hint = `請寫出「${maskedVocab}」缺少的國字。`;
+                                
+                                if (cleanSentence) {
+                                    // 把例句中的單字也挖空
+                                    hint += `\n例句：${cleanSentence.replace(new RegExp(vocab, 'g'), maskedVocab)}`;
+                                }
+                                
+                                let extras = [];
+                                if (cleanBopomofo) extras.push(`注音：${cleanBopomofo}`);
+                                if (cleanExp) extras.push(`解釋：${cleanExp}`);
+                                
+                                if (extras.length > 0) {
+                                    hint += `\n\n(${extras.join('，')})`;
+                                }
+                            } else if (type.includes('字音')) {
+                                // 考注音：如果有多個注音（以空白分隔），則只取出目標字的那個注音
+                                let targetBopomofo = cleanBopomofo.trim();
+                                if (targetBopomofo) {
+                                    const bopomofoParts = targetBopomofo.split(/\s+/);
+                                    if (bopomofoParts.length > 1 && vocab.includes(focusChar)) {
+                                        // 找出目標字在詞彙中的位置
+                                        const charIndex = vocab.indexOf(focusChar);
+                                        // 確保該位置在注音陣列的範圍內
+                                        if (charIndex !== -1 && charIndex < bopomofoParts.length) {
+                                            targetBopomofo = bopomofoParts[charIndex];
+                                        }
+                                    }
+                                }
+
+                                answer = targetBopomofo;
+                                if (!answer) continue; // 沒有注音資料無法考注音
+                                
+                                hint = `📍 請輸入「${vocab}」中「${focusChar}」字的注音。`;
+                                if (cleanSentence) hint += `\n例句：${cleanSentence}`;
+                                if (cleanExp) hint += `\n解釋：${cleanExp}`;
+                            }
+
+                            if (answer && hint) {
+                                allDataRows.value.push({
+                                    unit: unit.trim(),
+                                    word: answer, // 答案
+                                    hint: hint.trim() // 提示文字
+                                });
+                            }
+                        }
+                    }
+                };
+
+                const fetchAndScanData = async () => {
+                    loading.value = true;
+                    feedbackMessage.value = '正在掃描題庫中...';
+                    
+                    try {
+                        const baseUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+                        
+                        // 1. 取得預設工作表
+                        const defaultRes = await fetch(baseUrl);
+                        const defaultText = await defaultRes.text();
+                        const defaultJson = JSON.parse(defaultText.match(/(?<=.*\().*(?=\);)/s)[0]);
+                        const defaultSig = defaultJson.sig;
+                        
+                        parseAndAddData(defaultJson, '預設單元');
+
+                        // 2. 掃描所有可能的工作表 (1~20)
+                        const sheetNamesToTry = [];
+                        const chineseMap = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
+                        for(let i=1; i<=20; i++) {
+                            sheetNamesToTry.push(i.toString());
+                            sheetNamesToTry.push(`第${chineseMap[i-1]}單元`);
+                        }
+
+                        const promises = sheetNamesToTry.map(name => {
+                            return fetch(`${baseUrl}&sheet=${encodeURIComponent(name)}`)
+                                .then(res => res.text())
+                                .then(text => {
+                                    if (text.includes('"status":"error"')) return null;
+                                    const json = JSON.parse(text.match(/(?<=.*\().*(?=\);)/s)[0]);
+                                    if (json.sig === defaultSig) return null;
+                                    return { json, name };
+                                }).catch(() => null);
+                        });
+
+                        const results = await Promise.all(promises);
+                        const seenSigs = new Set([defaultSig]);
+                        results.forEach(res => {
+                            if (res && res.json && !seenSigs.has(res.json.sig)) {
+                                seenSigs.add(res.json.sig);
+                                parseAndAddData(res.json, res.name);
+                            }
+                        });
+
+                        // 建立並排序單元選單
+                        const uniqueUnits = [...new Set(allDataRows.value.map(item => item.unit).filter(u => u))];
+                        uniqueUnits.sort((a, b) => getUnitNumber(a) - getUnitNumber(b));
+                        
+                        availableUnits.value = uniqueUnits;
+
+                        if (availableUnits.value.length > 0) {
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const unitParam = urlParams.get('unit');
+                            if (unitParam && availableUnits.value.includes(unitParam)) {
+                                currentUnit.value = unitParam;
+                            } else {
+                                currentUnit.value = availableUnits.value[0];
+                            }
+                            loadUnitData(); // 載入選擇的單元資料
+                        } else {
+                            feedbackMessage.value = '試算表中找不到任何「字形」或「字音」的題目資料';
+                        }
+                    } catch (error) {
+                        console.error("讀取資料失敗", error);
+                        feedbackMessage.value = '讀取資料失敗，請確認網路連線';
+                    } finally {
+                        loading.value = false;
+                        if(availableUnits.value.length > 0) feedbackMessage.value = '';
+                    }
+                };
+
+                const loadUnitData = () => {
+                    const unitData = allDataRows.value.filter(item => item.unit === currentUnit.value);
+                    if (unitData.length > 0) {
+                        questions.value = unitData.sort(() => Math.random() - 0.5);
+                        feedbackMessage.value = '';
+                    } else {
+                        questions.value = [];
+                        feedbackMessage.value = '此單元目前沒有題目資料';
+                    }
+                    currentIndex.value = 0;
+                    resetInput();
+                };
+
+                const checkAnswer = () => {
+                    if (!userAnswer.value.trim()) return;
+
+                    if (userAnswer.value.trim() === currentQuestion.value.word) {
+                        inputStatus.value = 'correct';
+                        feedbackMessage.value = '🎉 答對了！太棒了！';
+                        // 延遲 0.5 秒後自動換下一題
+                        setTimeout(() => {
+                            if (inputStatus.value === 'correct') nextQuestion();
+                        }, 500);
+                    } else {
+                        inputStatus.value = 'incorrect';
+                        feedbackMessage.value = '🤔 好像不太對喔，再試試看！';
+                    }
+                };
+
+                const showAnswer = () => {
+                    userAnswer.value = currentQuestion.value.word;
+                    inputStatus.value = '';
+                    feedbackMessage.value = '💡 解答在這裡！';
+                };
+
+                const nextQuestion = () => {
+                    if (currentIndex.value < questions.value.length - 1) {
+                        currentIndex.value++;
+                        resetInput();
+                    } else {
+                        alert("恭喜！這個單元已經練習完畢囉！");
+                        currentIndex.value = 0;
+                        resetInput();
+                        // 重新洗牌
+                        questions.value = questions.value.sort(() => Math.random() - 0.5);
+                    }
+                };
+
+                const prevQuestion = () => {
+                    if (currentIndex.value > 0) {
+                        currentIndex.value--;
+                        resetInput();
+                    }
+                };
+
+                const resetInput = () => {
+                    userAnswer.value = '';
+                    inputStatus.value = '';
+                    feedbackMessage.value = '';
+                    
+                    // 自動對焦到輸入框，方便鍵盤直接輸入
+                    setTimeout(() => {
+                        const input = document.getElementById('answerInput');
+                        if (input && !input.disabled) {
+                            input.focus();
+                        }
+                    }, 50);
+                };
+
+                onMounted(() => {
+                    fetchAndScanData();
+                });
+
+                return {
+                    availableUnits,
+                    currentUnit,
+                    questions,
+                    currentQuestion,
+                    currentIndex,
+                    userAnswer,
+                    inputStatus,
+                    feedbackMessage,
+                    loading,
+                    loadUnitData,
+                    checkAnswer,
+                    showAnswer,
+                    nextQuestion,
+                    prevQuestion
+                };
+            }
+        }).mount('#app');
+    </script>
+
+</body>
+
+</html>
