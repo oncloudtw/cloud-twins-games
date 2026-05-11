@@ -520,11 +520,8 @@
                         currentIndex.value++;
                         resetInput();
                     } else {
-                        alert("恭喜！這個單元已經練習完畢囉！");
-                        currentIndex.value = 0;
-                        resetInput();
-                        // 重新洗牌
-                        questions.value = questions.value.sort(() => Math.random() - 0.5);
+                        inputStatus.value = 'correct';
+                        feedbackMessage.value = '🏆 恭喜！這個單元已經練習完畢囉！請選擇其他單元繼續挑戰。';
                     }
                 };
 

@@ -185,7 +185,8 @@
                 class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 hidden flex-col justify-center items-center p-6 text-center">
                 <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-star"></i></div>
                 <h2 class="text-3xl font-black text-emerald-700 mb-2">太棒了！完全正確！</h2>
-                <p id="success-desc" class="text-slate-600 font-medium mb-8">您已經完成本回合的配對。</p>
+                <p id="success-desc" class="text-slate-600 font-medium mb-4">您已經完成本回合的配對。</p>
+                <div id="score-text" class="text-xl text-emerald-800 font-bold mb-6 hidden bg-emerald-100 py-2 px-6 rounded-full border-2 border-emerald-300"></div>
                 <div class="flex gap-4">
                     <button id="btn-next-batch"
                         class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
@@ -195,6 +196,20 @@
                         class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
                         回主選單 <i class="ph-bold ph-house"></i>
                     </button>
+                </div>
+            </div>
+
+            <!-- 確認返回蓋板 -->
+            <div id="modal-confirm"
+                class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex-col justify-center items-center p-6 text-center">
+                <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
+                    <div class="text-5xl text-rose-500 mb-4"><i class="ph-fill ph-warning-circle"></i></div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">確定要返回嗎？</h2>
+                    <p class="text-slate-600 mb-8">目前的遊戲進度將會重置。</p>
+                    <div class="flex gap-4 justify-center">
+                        <button id="btn-confirm-cancel" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded-xl transition-all">取消</button>
+                        <button id="btn-confirm-yes" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-6 rounded-xl transition-all">確定返回</button>
+                    </div>
                 </div>
             </div>
 
@@ -219,6 +234,7 @@
         let selectedIdiom = null; // 點擊的左側項目 {id, element}
         let selectedMeaning = null; // 點擊的右側項目 {id, element}
         let matchedPairs = [];    // 紀錄已配對成功的連線 {idiomElem, meaningElem}
+        let failedIdiomIds = new Set(); // 紀錄曾經配對錯誤的成語 ID
 
         // ==========================================
         // 2. 初始化與資料處理 (從 Google Sheets 掃描)
@@ -390,6 +406,7 @@
             // 篩選該單元所有成語，並打亂順序
             currentUnitData = shuffleArray(allIdiomsData.filter(item => item.unit === unit));
             batchIndex = 0;
+            failedIdiomIds.clear();
 
             document.getElementById('current-unit-title').textContent = unit;
 
@@ -506,6 +523,9 @@
             } else {
                 // 配對失敗
                 showToast("不對喔，再試試！", "error");
+                
+                // 記錄答錯的成語 ID，讓分數計算時扣除
+                failedIdiomIds.add(selectedIdiom.id);
 
                 // 移除選取樣式並加入震動動畫
                 [idiomElem, meaningElem].forEach(el => {
@@ -539,10 +559,19 @@
 
                     if (isFullyComplete) {
                         document.getElementById('success-desc').textContent = "恭喜您完成了本單元所有的成語！";
+                        
+                        // 計算分數
+                        const firstTryCorrect = currentUnitData.length - failedIdiomIds.size;
+                        const scorePercent = Math.round((firstTryCorrect / currentUnitData.length) * 100);
+                        document.getElementById('score-text').textContent = `🎯 一次全對：${firstTryCorrect} / ${currentUnitData.length} 題 (得分：${scorePercent} 分)`;
+                        document.getElementById('score-text').classList.remove('hidden');
+
                         document.getElementById('btn-next-batch').classList.add('hidden');
                         document.getElementById('btn-finish-unit').classList.remove('hidden');
                     } else {
                         document.getElementById('success-desc').textContent = "繼續挑戰下一批成語。";
+                        document.getElementById('score-text').classList.add('hidden');
+                        
                         document.getElementById('btn-next-batch').classList.remove('hidden');
                         document.getElementById('btn-finish-unit').classList.add('hidden');
                     }
@@ -567,9 +596,19 @@
         });
 
         document.getElementById('btn-back').addEventListener('click', () => {
-            if (confirm("確定要中斷目前的遊戲回到選單嗎？")) {
-                returnToMenu();
-            }
+            document.getElementById('modal-confirm').classList.remove('hidden');
+            document.getElementById('modal-confirm').classList.add('flex');
+        });
+
+        document.getElementById('btn-confirm-cancel').addEventListener('click', () => {
+            document.getElementById('modal-confirm').classList.add('hidden');
+            document.getElementById('modal-confirm').classList.remove('flex');
+        });
+
+        document.getElementById('btn-confirm-yes').addEventListener('click', () => {
+            document.getElementById('modal-confirm').classList.add('hidden');
+            document.getElementById('modal-confirm').classList.remove('flex');
+            returnToMenu();
         });
 
         function returnToMenu() {
