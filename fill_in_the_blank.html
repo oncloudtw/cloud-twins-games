@@ -342,9 +342,9 @@
 
                         // 判斷題型：
                         // 如果明確標示「字形」或「字音」，則依照標示
-                        // 如果是「試題補充」，則看有無指定考點字 (targetChar) 或注音 (bopomofo) 來判斷是否為字形字音考題
+                        // 如果是「試題補充」，則必須要有指定考點字 (targetChar) 才能當作字形字音題
                         let isShapeType = type.includes('字形') || (type.includes('試題補充') && targetChar);
-                        let isSoundType = type.includes('字音') || (type.includes('試題補充') && !targetChar && bopomofo);
+                        let isSoundType = type.includes('字音'); // 字音題要求明確的分類標示
 
                         if (isShapeType || isSoundType) {
                             let answer = '';
