@@ -515,6 +515,17 @@
                     el.classList.remove('text-emerald-800', 'text-slate-700', 'hover:border-emerald-400');
                 });
 
+                // 加入 18dao 圖解連結 (僅限左側成語按鈕)
+                const idiomText = selectedIdiom.id;
+                idiomElem.innerHTML = `
+                    <div class="flex items-center justify-center gap-2">
+                        <span>${idiomText}</span>
+                        <a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-green-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-green-100 transition-colors shadow-sm" title="查看圖解與語音">
+                            <i class="ph-bold ph-book-open"></i>
+                        </a>
+                    </div>
+                `;
+
                 // 畫線紀錄
                 matchedPairs.push({ left: idiomElem, right: meaningElem });
                 drawAllLines();

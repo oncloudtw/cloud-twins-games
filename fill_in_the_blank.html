@@ -237,8 +237,17 @@
 
             <div v-else-if="questions.length > 0">
                 <div class="question-container">
-                    <div class="hint-label">提示 (解釋 / 例句)：</div>
-                    <div class="hint-text">{{ currentQuestion.hint }}</div>
+                    <div class="hint-label" style="display: flex; justify-content: space-between; align-items: flex-end;">
+                        <span>提示 (解釋 / 例句)：</span>
+                        <a v-if="currentQuestion.vocab && currentQuestion.vocab.length >= 2" 
+                           :href="'https://chengyu.18dao.net/chengyu/' + currentQuestion.vocab" 
+                           target="_blank" 
+                           class="flex items-center gap-1 text-sm bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-1 rounded-full transition-colors font-bold shadow-sm"
+                           title="開啟字典查看圖解與語音" style="margin-bottom: -2px; text-decoration: none;">
+                            <i class="ph-bold ph-book-open"></i> 查閱字典
+                        </a>
+                    </div>
+                    <div class="hint-text" style="white-space: pre-wrap;">{{ currentQuestion.hint }}</div>
 
                     <div class="input-area">
                         <input type="text" id="answerInput" v-model="userAnswer" @keyup.enter="checkAnswer"
@@ -410,7 +419,8 @@
                                 allDataRows.value.push({
                                     unit: unit.trim(),
                                     word: answer, // 答案
-                                    hint: hint.trim() // 提示文字
+                                    hint: hint.trim(), // 提示文字
+                                    vocab: vocab.trim() // 原始詞彙，用於查字典
                                 });
                             }
                         }
