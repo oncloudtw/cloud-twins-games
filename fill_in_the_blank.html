@@ -6,297 +6,209 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>字音字形填空遊戲</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
     <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --secondary: #10B981;
-            --bg-color: #F3F4F6;
-            --card-bg: rgba(255, 255, 255, 0.9);
-            --text-main: #1F2937;
-            --text-muted: #6B7280;
-            --error: #EF4444;
-        }
-
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background: linear-gradient(135deg, #E0E7FF 0%, #F3E8FF 100%);
+            background: linear-gradient(135deg, #e0f2fe 0%, #dcfce7 100%);
             min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: var(--text-main);
         }
 
-        #app {
-            width: 100%;
-            max-width: 600px;
-            padding: 20px;
+        .pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+            transform: scale(0.8);
         }
 
-        .glass-card {
-            background: var(--card-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            transition: transform 0.3s ease;
+        @keyframes popIn {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
-        h1 {
-            text-align: center;
-            color: var(--primary);
-            margin-top: 0;
-            font-size: 28px;
+        .shake-animation {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
         }
 
-        .unit-selector {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            align-items: center;
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
         }
-
-        select {
-            padding: 8px 12px;
-            border-radius: 8px;
-            border: 1px solid #D1D5DB;
-            font-size: 16px;
-            font-family: inherit;
-            outline: none;
-        }
-
-        select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-        }
-
-        .question-container {
-            margin: 30px 0;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.6);
-            border-radius: 12px;
-            border-left: 5px solid var(--primary);
-        }
-
-        .hint-label {
-            font-size: 14px;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-            font-weight: bold;
-        }
-
-        .hint-text {
-            font-size: 18px;
-            line-height: 1.6;
-            margin-bottom: 20px;
-            white-space: pre-wrap;
-        }
-
-        .input-area {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .answer-input {
-            width: 80%;
-            padding: 15px;
-            font-size: 24px;
-            text-align: center;
-            border: 2px dashed #9CA3AF;
-            border-radius: 12px;
-            background: transparent;
-            transition: all 0.3s;
-            font-family: inherit;
-        }
-
-        .answer-input:focus {
-            outline: none;
-            border-color: var(--primary);
-            border-style: solid;
-            background: white;
-        }
-
+        
         .answer-input.correct {
-            border-color: var(--secondary);
-            border-style: solid;
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--secondary);
+            border-color: #10B981 !important;
+            background-color: rgba(16, 185, 129, 0.1) !important;
+            color: #10B981 !important;
         }
 
         .answer-input.incorrect {
-            border-color: var(--error);
-            border-style: solid;
-            background: rgba(239, 68, 68, 0.1);
-            color: var(--error);
-        }
-
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-        }
-
-        button {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);
-        }
-
-        .btn-primary:hover {
-            background: var(--primary-hover);
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: #E5E7EB;
-            color: var(--text-main);
-        }
-
-        .btn-secondary:hover {
-            background: #D1D5DB;
-        }
-
-        .feedback {
-            text-align: center;
-            font-weight: bold;
-            font-size: 18px;
-            margin-top: 15px;
-            min-height: 27px;
-        }
-
-        .feedback.correct-text {
-            color: var(--secondary);
-        }
-
-        .feedback.incorrect-text {
-            color: var(--error);
-        }
-
-        .progress {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-
-        /* 載入中動畫 */
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+            border-color: #EF4444 !important;
+            background-color: rgba(239, 68, 68, 0.1) !important;
+            color: #EF4444 !important;
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
         }
     </style>
 </head>
 
-<body>
+<body class="bg-slate-50 text-slate-800">
 
-    <div id="app">
-        <div class="glass-card">
-            <h1>📝 字音字形填空</h1>
+    <div id="app" class="w-full max-w-4xl mx-auto h-screen md:h-[90vh] flex flex-col md:rounded-3xl shadow-2xl overflow-hidden bg-white/80 backdrop-blur-md border border-white/40">
 
-            <div class="unit-selector">
-                <label>選擇單元：</label>
-                <select v-model="currentUnit" @change="loadUnitData">
-                    <option v-for="unit in availableUnits" :value="unit">{{ unit }}</option>
-                </select>
+        <!-- =================== 畫面一：主選單 =================== -->
+        <div v-if="gameState === 'menu'" class="flex-1 flex flex-col justify-center items-center p-8 pop-in">
+            <div class="bg-white p-8 md:p-12 rounded-3xl shadow-xl w-full max-w-md border-2 border-emerald-100 relative">
+                <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-white rounded-full p-4 shadow-lg border-2 border-emerald-100">
+                    <i class="ph-duotone ph-pencil-simple text-5xl text-emerald-500"></i>
+                </div>
+
+                <h1 class="text-3xl md:text-4xl font-black text-center text-slate-800 mt-6 mb-8 tracking-wider">字音字形填空</h1>
+
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-emerald-700 mb-2">請選擇：</label>
+                        <select v-model="currentUnit" class="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 bg-white text-lg focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer font-medium text-slate-700">
+                            <option v-if="loading" disabled selected>正在掃描題庫中...</option>
+                            <option v-else v-for="unit in availableUnits" :value="unit">{{ unit }}</option>
+                        </select>
+                    </div>
+
+                    <button @click="startGame" :disabled="loading || !currentUnit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i v-if="loading" class="ph-bold ph-spinner animate-spin"></i>
+                        <i v-else class="ph-bold ph-play"></i>
+                        <span>{{ loading ? '載入中...' : '開始練習' }}</span>
+                    </button>
+                </div>
             </div>
 
-            <div v-if="loading" class="loader"></div>
+            <p class="mt-6 text-sm text-slate-500">{{ feedbackMessage || '系統會自動掃描試算表中所有工作表的「單元」欄位。' }}</p>
+        </div>
 
-            <div v-else-if="questions.length > 0">
-                <div class="question-container">
-                    <div class="hint-label" style="display: flex; justify-content: space-between; align-items: flex-end;">
-                        <span>提示 (解釋 / 例句)：</span>
-                        <a v-if="currentQuestion.vocab && currentQuestion.vocab.length >= 2" 
-                           :href="'https://chengyu.18dao.net/chengyu/' + currentQuestion.vocab" 
-                           target="_blank" 
-                           class="flex items-center gap-1 text-sm bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-1 rounded-full transition-colors font-bold shadow-sm"
-                           title="開啟字典查看圖解與語音" style="margin-bottom: -2px; text-decoration: none;">
-                            <i class="ph-bold ph-book-open"></i> 查閱字典
-                        </a>
+        <!-- =================== 畫面二：遊戲區 =================== -->
+        <div v-if="gameState === 'playing'" class="flex-1 flex flex-col relative pop-in">
+
+            <!-- 遊戲區標頭 -->
+            <div class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
+                <button @click="backToMenu" class="flex items-center gap-1 font-bold text-emerald-100 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20">
+                    <i class="ph-bold ph-arrow-left"></i> 返回
+                </button>
+                <h2 class="text-xl font-black tracking-wide">{{ currentUnit }}</h2>
+                <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm flex gap-1">
+                    <span>進度:</span>
+                    <span>{{ currentIndex + 1 }} / {{ questions.length }}</span>
+                </div>
+            </div>
+
+            <!-- 控制面板 (移至上方) -->
+            <div class="bg-emerald-50 px-4 py-3 border-b border-emerald-200 flex justify-center gap-2 md:gap-4 relative z-10 shadow-sm flex-wrap">
+                <button @click="prevQuestion" :disabled="currentIndex === 0" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-emerald-700 bg-white border border-emerald-300 hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="ph-bold ph-caret-left"></i> 上一題
+                </button>
+                <button @click="showAnswer" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 transition-colors">
+                    <i class="ph-bold ph-lightbulb"></i> 看解答
+                </button>
+                <button @click="nextQuestion" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-emerald-700 bg-white border border-emerald-300 hover:bg-emerald-100 transition-colors shadow-sm">
+                    下一題 <i class="ph-bold ph-caret-right"></i>
+                </button>
+            </div>
+
+            <!-- 遊戲主要內容區 -->
+            <div class="flex-1 p-4 md:p-12 overflow-y-auto flex flex-col items-center justify-center relative">
+                
+                <div v-if="questions.length > 0" class="w-full max-w-2xl">
+                    <!-- 提示區塊 -->
+                    <div class="bg-white p-6 md:p-8 rounded-3xl shadow-md border-2 border-emerald-100 mb-8 relative">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b-2 border-emerald-100 pb-3 gap-3">
+                            <div class="text-lg font-black text-emerald-600 flex items-center gap-2">
+                                <i class="ph-fill ph-info text-2xl"></i> 提示 (解釋 / 例句)
+                            </div>
+                            
+                            <!-- 三大字典按鈕 -->
+                            <div v-if="currentQuestion.vocab && currentQuestion.vocab.length >= 2" class="flex gap-2 self-end md:self-auto">
+                                <a :href="'https://chengyu.18dao.net/chengyu/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center bg-emerald-50 text-emerald-600 rounded-full w-10 h-10 hover:bg-emerald-200 transition-colors shadow-sm border border-emerald-200" title="成語典 (圖解與語音)">
+                                    <i class="ph-bold ph-book-bookmark text-xl"></i>
+                                </a>
+                                <a :href="'https://dacidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center bg-blue-50 text-blue-600 rounded-full w-10 h-10 hover:bg-blue-200 transition-colors shadow-sm border border-blue-200" title="國語大辭典">
+                                    <i class="ph-bold ph-books text-xl"></i>
+                                </a>
+                                <a :href="'https://cidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center bg-orange-50 text-orange-600 rounded-full w-10 h-10 hover:bg-orange-200 transition-colors shadow-sm border border-orange-200" title="國語辭典">
+                                    <i class="ph-bold ph-book-open text-xl"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="text-xl md:text-2xl text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">{{ currentQuestion.hint }}</div>
                     </div>
-                    <div class="hint-text" style="white-space: pre-wrap;">{{ currentQuestion.hint }}</div>
 
-                    <div class="input-area">
+                    <!-- 輸入區塊 -->
+                    <div class="flex flex-col items-center">
                         <input type="text" id="answerInput" v-model="userAnswer" @keyup.enter="checkAnswer"
-                            :class="['answer-input', inputStatus]" placeholder="請點擊此處使用手寫或鍵盤輸入"
+                            :class="['w-full max-w-sm text-center text-3xl md:text-4xl font-black py-4 px-6 rounded-2xl border-4 border-dashed border-slate-300 bg-white/50 focus:bg-white focus:border-emerald-500 focus:outline-none transition-all shadow-inner answer-input', inputStatus]" 
+                            placeholder="點擊輸入"
                             :disabled="inputStatus === 'correct'">
+                        
+                        <div class="mt-6 text-xl font-bold min-h-[32px] text-center" :class="{
+                            'text-emerald-500': inputStatus === 'correct',
+                            'text-red-500': inputStatus === 'incorrect',
+                            'text-amber-600': inputStatus === '' && feedbackMessage.includes('解答')
+                        }">
+                            {{ feedbackMessage }}
+                        </div>
                     </div>
                 </div>
 
-                <div class="feedback" :class="inputStatus + '-text'">
-                    {{ feedbackMessage }}
+                <div v-else class="text-center text-slate-500 p-8">
+                    目前沒有題目資料，請確認試算表設定。
                 </div>
 
-                <div class="controls">
-                    <button class="btn-secondary" @click="prevQuestion" :disabled="currentIndex === 0">⬅️ 上一題</button>
-                    <button class="btn-secondary" @click="showAnswer">👀 看解答</button>
-                    <button class="btn-primary" @click="nextQuestion">下一題 ➔</button>
-                </div>
-
-                <div class="progress">
-                    進度：{{ currentIndex + 1 }} / {{ questions.length }}
-                </div>
-            </div>
-            <div v-else style="text-align: center; color: #6B7280; padding: 20px;">
-                目前沒有題目資料，請確認試算表設定。
             </div>
         </div>
     </div>
 
+    <!-- 保持原本的腳本 -->
     <script>
-        const { createApp, ref, computed, onMounted } = Vue;
+        const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
         // 這裡是您的試算表 ID
         const SHEET_ID = '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo';
 
         createApp({
             setup() {
+                const gameState = ref('menu'); // 'menu' 或 'playing'
                 const availableUnits = ref([]);
                 const currentUnit = ref('');
                 const allDataRows = ref([]);
                 const questions = ref([]);
                 const currentIndex = ref(0);
                 const userAnswer = ref('');
-                const inputStatus = ref(''); // '', 'correct', 'incorrect'
+                const inputStatus = ref(''); 
                 const feedbackMessage = ref('');
                 const loading = ref(true);
 
                 const currentQuestion = computed(() => {
                     return questions.value[currentIndex.value] || {};
                 });
+
+                const startGame = () => {
+                    if (!currentUnit.value) return;
+                    loadUnitData();
+                    gameState.value = 'playing';
+                    nextTick(() => {
+                        resetInput();
+                    });
+                };
+
+                const backToMenu = () => {
+                    gameState.value = 'menu';
+                };
 
                 // 提取單元數字以便排序
                 const getUnitNumber = (unitStr) => {
@@ -429,7 +341,7 @@
 
                 const fetchAndScanData = async () => {
                     loading.value = true;
-                    feedbackMessage.value = '正在掃描題庫中...';
+                    feedbackMessage.value = '';
                     
                     try {
                         const baseUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
@@ -484,7 +396,6 @@
                             } else {
                                 currentUnit.value = availableUnits.value[0];
                             }
-                            loadUnitData(); // 載入選擇的單元資料
                         } else {
                             feedbackMessage.value = '試算表中找不到任何「字形」或「字音」的題目資料';
                         }
@@ -493,7 +404,6 @@
                         feedbackMessage.value = '讀取資料失敗，請確認網路連線';
                     } finally {
                         loading.value = false;
-                        if(availableUnits.value.length > 0) feedbackMessage.value = '';
                     }
                 };
 
@@ -538,7 +448,7 @@
                         resetInput();
                     } else {
                         inputStatus.value = 'correct';
-                        feedbackMessage.value = '🏆 恭喜！這個單元已經練習完畢囉！請選擇其他單元繼續挑戰。';
+                        feedbackMessage.value = '🏆 恭喜！這個單元已經練習完畢囉！請點擊左上角「返回」選擇其他單元繼續挑戰。';
                     }
                 };
 
@@ -555,12 +465,12 @@
                     feedbackMessage.value = '';
                     
                     // 自動對焦到輸入框，方便鍵盤直接輸入
-                    setTimeout(() => {
+                    nextTick(() => {
                         const input = document.getElementById('answerInput');
                         if (input && !input.disabled) {
                             input.focus();
                         }
-                    }, 50);
+                    });
                 };
 
                 onMounted(() => {
@@ -568,6 +478,9 @@
                 });
 
                 return {
+                    gameState,
+                    startGame,
+                    backToMenu,
                     availableUnits,
                     currentUnit,
                     questions,
@@ -577,7 +490,6 @@
                     inputStatus,
                     feedbackMessage,
                     loading,
-                    loadUnitData,
                     checkAnswer,
                     showAnswer,
                     nextQuestion,
