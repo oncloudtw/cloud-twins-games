@@ -91,7 +91,7 @@
 
                     <div class="space-y-2">
                         <label class="block text-sm font-bold text-blue-700 mb-2">每階段題數：</label>
-                        <select v-model="batchSize" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700">
+                        <select v-model="batchSize" :disabled="canResume" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">
                             <option :value="5">5 題 / 階段</option>
                             <option :value="10">10 題 / 階段</option>
                             <option :value="20">20 題 / 階段</option>
@@ -99,7 +99,17 @@
                         </select>
                     </div>
 
-                    <button @click="startGame" :disabled="loading || !currentUnit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <div v-if="canResume" class="flex gap-4">
+                        <button @click="resumeGame" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2">
+                            <i class="ph-bold ph-play"></i>
+                            <span>繼續第 {{ currentBatchIndex + 1 }} 關</span>
+                        </button>
+                        <button @click="startGame" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-4 rounded-xl text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2">
+                            <i class="ph-bold ph-arrow-counter-clockwise"></i>
+                            <span>重新開始</span>
+                        </button>
+                    </div>
+                    <button v-else @click="startGame" :disabled="loading || !currentUnit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i v-if="loading" class="ph-bold ph-spinner animate-spin"></i>
                         <i v-else class="ph-bold ph-play"></i>
                         <span>{{ loading ? '載入中...' : '開始練習' }}</span>
@@ -213,7 +223,7 @@
             </div>
             
             <div class="flex gap-4">
-                <button @click="doBackToMenu" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl transition-all">
+                <button @click="restNow" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl transition-all">
                     先休息 <i class="ph-bold ph-house"></i>
                 </button>
                 <button @click="nextStage" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
@@ -292,10 +302,24 @@
                     if (questions.value.length === 0) return 0;
                     return Math.round((totalCorrectCount.value / questions.value.length) * 100);
                 });
+                
+                const canResume = computed(() => {
+                    return questions.value.length > 0 && 
+                           questions.value[0].unit === currentUnit.value &&
+                           (currentBatchIndex.value > 0 || currentIndex.value > 0) &&
+                           !showSuccessModal.value;
+                });
 
                 const startGame = () => {
                     if (!currentUnit.value) return;
                     loadUnitData();
+                    gameState.value = 'playing';
+                    nextTick(() => {
+                        resetInputFocus();
+                    });
+                };
+                
+                const resumeGame = () => {
                     gameState.value = 'playing';
                     nextTick(() => {
                         resetInputFocus();
@@ -307,9 +331,29 @@
                 };
 
                 const doBackToMenu = () => {
+                    if (showSuccessModal.value) {
+                        questions.value = []; // Reset completely since they finished
+                    } else {
+                        // Reset current batch progress
+                        currentIndex.value = 0;
+                        stageCorrectCount.value = 0;
+                        failedQuestions.value = new Set();
+                        resetInput();
+                    }
+
                     showConfirmModal.value = false;
                     showStageModal.value = false;
                     showSuccessModal.value = false;
+                    gameState.value = 'menu';
+                };
+
+                const restNow = () => {
+                    showStageModal.value = false;
+                    currentBatchIndex.value++;
+                    currentIndex.value = 0;
+                    stageCorrectCount.value = 0;
+                    failedQuestions.value = new Set();
+                    resetInput();
                     gameState.value = 'menu';
                 };
 
@@ -631,7 +675,10 @@
                     showSuccessModal,
                     stageScore,
                     finalScore,
-                    resetInputFocus
+                    resetInputFocus,
+                    canResume,
+                    resumeGame,
+                    restNow
                 };
             }
         }).mount('#app');
