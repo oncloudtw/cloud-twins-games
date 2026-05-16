@@ -13,12 +13,13 @@
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); /* blue background */
+            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
             margin: 0;
+            padding: 1rem;
         }
 
         .pop-in {
@@ -62,25 +63,39 @@
 
 <body class="bg-slate-50 text-slate-800">
 
-    <div id="app" class="w-full max-w-4xl mx-auto h-screen md:h-[90vh] flex flex-col md:rounded-3xl shadow-2xl overflow-hidden bg-white/80 backdrop-blur-md border border-white/40 relative">
+    <div id="app" class="w-full max-w-4xl mx-auto h-[95vh] md:h-[90vh] flex flex-col relative">
 
         <!-- =================== 畫面一：主選單 =================== -->
-        <div v-if="gameState === 'menu'" class="flex-1 flex flex-col justify-center items-center p-8 pop-in">
-            <div class="bg-white p-8 md:p-12 rounded-3xl shadow-xl w-full max-w-md border-2 border-blue-100 relative">
-                <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-white rounded-full p-4 shadow-lg border-2 border-blue-100">
-                    <i class="ph-duotone ph-pencil-simple text-5xl text-blue-500"></i>
-                </div>
+        <div v-if="gameState === 'menu'" class="flex-1 flex flex-col justify-center items-center pop-in w-full h-full">
+            
+            <header class="text-center mb-8 w-full pop-in">
+                <h1 class="text-4xl md:text-5xl font-black text-blue-600 mb-3 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
+                    <i class="ph-fill ph-pencil-simple"></i> 字音字形填空
+                </h1>
+                <p class="text-blue-700/80 font-medium">看懂解釋，填入正確的國字或注音！</p>
+            </header>
 
-                <h1 class="text-3xl md:text-4xl font-black text-center text-slate-800 mt-6 mb-8 tracking-wider">字音字形填空</h1>
+            <div class="bg-white/80 backdrop-blur-md rounded-3xl p-8 md:p-12 shadow-xl w-full max-w-md border-2 border-blue-100 relative">
+                <h2 class="text-2xl font-bold text-center text-blue-800 mb-6">選擇挑戰單元</h2>
 
                 <div class="space-y-6">
                     <div class="space-y-2">
-                        <label class="block text-sm font-bold text-blue-700 mb-2">請選擇：</label>
+                        <label class="block text-sm font-bold text-blue-700 mb-2">請選擇單元：</label>
                         <select v-model="currentUnit" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700">
                             <option v-if="loading" disabled selected>正在掃描題庫中...</option>
                             <option v-else v-for="unitObj in availableUnits" :value="unitObj.name">
                                 {{ unitObj.name }} (共 {{ unitObj.count }} 題)
                             </option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-blue-700 mb-2">每階段題數：</label>
+                        <select v-model="batchSize" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700">
+                            <option :value="5">5 題 / 階段</option>
+                            <option :value="10">10 題 / 階段</option>
+                            <option :value="20">20 題 / 階段</option>
+                            <option :value="999">不分段 (一次完成)</option>
                         </select>
                     </div>
 
@@ -96,7 +111,7 @@
         </div>
 
         <!-- =================== 畫面二：遊戲區 =================== -->
-        <div v-if="gameState === 'playing'" class="flex-1 flex flex-col relative pop-in">
+        <div v-if="gameState === 'playing'" class="flex-1 flex flex-col relative pop-in bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/40">
 
             <!-- 遊戲區標頭 -->
             <div class="bg-blue-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
@@ -104,13 +119,13 @@
                     <i class="ph-bold ph-arrow-left"></i> 返回
                 </button>
                 <h2 class="text-xl font-black tracking-wide">{{ currentUnit }}</h2>
-                <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm flex gap-1">
-                    <span>進度:</span>
-                    <span>{{ currentIndex + 1 }} / {{ questions.length }}</span>
+                <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm flex gap-1 items-center">
+                    <span v-if="batchSize < 999" class="bg-blue-800 px-2 py-0.5 rounded mr-1">第 {{ currentBatchIndex + 1 }} 關</span>
+                    <span>進度: {{ currentIndex + 1 }} / {{ currentBatchQuestions.length }}</span>
                 </div>
             </div>
 
-            <!-- 控制面板 (移至上方) -->
+            <!-- 控制面板 -->
             <div class="bg-blue-50 px-4 py-3 border-b border-blue-200 flex justify-center gap-2 md:gap-4 relative z-10 shadow-sm flex-wrap">
                 <button @click="prevQuestion" :disabled="currentIndex === 0" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-blue-700 bg-white border border-blue-300 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="ph-bold ph-caret-left"></i> 上一題
@@ -126,7 +141,7 @@
             <!-- 遊戲主要內容區 -->
             <div class="flex-1 p-4 md:p-12 overflow-y-auto flex flex-col items-center justify-center relative">
                 
-                <div v-if="questions.length > 0" class="w-full max-w-2xl">
+                <div v-if="currentBatchQuestions.length > 0" class="w-full max-w-2xl">
                     <!-- 提示區塊 -->
                     <div class="bg-white p-6 md:p-8 rounded-3xl shadow-md border-2 border-blue-100 mb-8 relative">
                         <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b-2 border-blue-100 pb-3 gap-3">
@@ -175,26 +190,46 @@
         </div>
 
         <!-- =================== Modal: 確認返回 =================== -->
-        <div v-if="showConfirmModal" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center">
+        <div v-if="showConfirmModal" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center rounded-3xl">
             <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
                 <div class="text-5xl text-rose-500 mb-4"><i class="ph-fill ph-warning-circle"></i></div>
                 <h2 class="text-2xl font-bold text-slate-800 mb-2">確定要返回嗎？</h2>
                 <p class="text-slate-600 mb-8">目前的練習進度將會重置。</p>
                 <div class="flex gap-4 justify-center">
-                    <button @click="showConfirmModal = false" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded-xl transition-all">取消</button>
+                    <button @click="showConfirmModal = false; resetInputFocus()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded-xl transition-all">取消</button>
                     <button @click="doBackToMenu" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-6 rounded-xl transition-all">確定返回</button>
                 </div>
             </div>
         </div>
 
-        <!-- =================== Modal: 過關結算 =================== -->
-        <div v-if="showSuccessModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center">
-            <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-star"></i></div>
-            <h2 class="text-3xl font-black text-blue-700 mb-2">太棒了！練習完成！</h2>
-            <p class="text-slate-600 font-medium mb-4">您已經完成「{{ currentUnit }}」的所有題目。</p>
+        <!-- =================== Modal: 階段過關結算 =================== -->
+        <div v-if="showStageModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center rounded-3xl">
+            <div class="text-6xl text-blue-500 mb-4 animate-bounce"><i class="ph-fill ph-flag-checkered"></i></div>
+            <h2 class="text-3xl font-black text-blue-700 mb-2">第 {{ currentBatchIndex + 1 }} 關 完成！</h2>
+            <p class="text-slate-600 font-medium mb-4">您可以稍作休息，或繼續挑戰下一關。</p>
             
             <div class="text-xl text-blue-800 font-bold mb-6 bg-blue-100 py-2 px-6 rounded-full border-2 border-blue-300">
-                答對率 (第一次答對): <span class="text-2xl">{{ score }}</span>%
+                本關答對率 (一次答對): <span class="text-2xl">{{ stageScore }}</span>%
+            </div>
+            
+            <div class="flex gap-4">
+                <button @click="doBackToMenu" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl transition-all">
+                    先休息 <i class="ph-bold ph-house"></i>
+                </button>
+                <button @click="nextStage" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                    下一關 <i class="ph-bold ph-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- =================== Modal: 最終過關結算 =================== -->
+        <div v-if="showSuccessModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center rounded-3xl">
+            <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-trophy"></i></div>
+            <h2 class="text-3xl font-black text-blue-700 mb-2">太棒了！單元全部完成！</h2>
+            <p class="text-slate-600 font-medium mb-4">您已經完成了「{{ currentUnit }}」的所有題目。</p>
+            
+            <div class="text-xl text-blue-800 font-bold mb-6 bg-blue-100 py-2 px-6 rounded-full border-2 border-blue-300">
+                總答對率 (一次答對): <span class="text-2xl">{{ finalScore }}</span>%
             </div>
             
             <button @click="doBackToMenu" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
@@ -214,11 +249,14 @@
         createApp({
             setup() {
                 const gameState = ref('menu'); // 'menu' 或 'playing'
-                const availableUnits = ref([]); // 現在是 [{name: 'xxx', count: 10}]
+                const availableUnits = ref([]); 
                 const currentUnit = ref('');
+                const batchSize = ref(10); // 每階段題數
+                const currentBatchIndex = ref(0);
+
                 const allDataRows = ref([]);
                 const questions = ref([]);
-                const currentIndex = ref(0);
+                const currentIndex = ref(0); // 批次內的索引
                 const userAnswer = ref('');
                 const inputStatus = ref(''); 
                 const feedbackMessage = ref('');
@@ -226,17 +264,33 @@
 
                 // Modals and Score
                 const showConfirmModal = ref(false);
+                const showStageModal = ref(false);
                 const showSuccessModal = ref(false);
-                const failedQuestions = ref(new Set()); // 紀錄曾經答錯或看解答的題目索引
-                const firstTryCorrectCount = ref(0);
+                
+                const failedQuestions = ref(new Set()); // 紀錄當前批次曾經答錯或看解答的題目索引
+                const stageCorrectCount = ref(0); // 當前階段第一次就答對的數量
+                const totalCorrectCount = ref(0); // 整個單元第一次就答對的數量
 
-                const score = computed(() => {
-                    if (questions.value.length === 0) return 0;
-                    return Math.round((firstTryCorrectCount.value / questions.value.length) * 100);
+                // 計算當前批次的題目
+                const currentBatchQuestions = computed(() => {
+                    const start = currentBatchIndex.value * batchSize.value;
+                    const end = start + batchSize.value;
+                    return questions.value.slice(start, end);
                 });
 
                 const currentQuestion = computed(() => {
-                    return questions.value[currentIndex.value] || {};
+                    return currentBatchQuestions.value[currentIndex.value] || {};
+                });
+
+                // 分數計算
+                const stageScore = computed(() => {
+                    if (currentBatchQuestions.value.length === 0) return 0;
+                    return Math.round((stageCorrectCount.value / currentBatchQuestions.value.length) * 100);
+                });
+
+                const finalScore = computed(() => {
+                    if (questions.value.length === 0) return 0;
+                    return Math.round((totalCorrectCount.value / questions.value.length) * 100);
                 });
 
                 const startGame = () => {
@@ -244,7 +298,7 @@
                     loadUnitData();
                     gameState.value = 'playing';
                     nextTick(() => {
-                        resetInput();
+                        resetInputFocus();
                     });
                 };
 
@@ -254,6 +308,7 @@
 
                 const doBackToMenu = () => {
                     showConfirmModal.value = false;
+                    showStageModal.value = false;
                     showSuccessModal.value = false;
                     gameState.value = 'menu';
                 };
@@ -310,10 +365,8 @@
                         if (!vocab) continue;
 
                         // 判斷題型：
-                        // 如果明確標示「字形」或「字音」，則依照標示
-                        // 如果是「試題補充」，則必須要有指定考點字 (targetChar) 才能當作字形字音題
                         let isShapeType = type.includes('字形') || (type.includes('試題補充') && targetChar);
-                        let isSoundType = type.includes('字音'); // 字音題要求明確的分類標示
+                        let isSoundType = type.includes('字音'); 
 
                         if (isShapeType || isSoundType) {
                             let answer = '';
@@ -323,14 +376,10 @@
                             let cleanExp = (exp && exp !== '(無)' && exp !== '(教材無特別註解)') ? exp : '';
                             let cleanBopomofo = (bopomofo && bopomofo !== '(無)' && bopomofo !== '(教材無特別註解)') ? bopomofo : '';
 
-                            // 決定這題要考的核心單字（若字形欄位為空，退回用詞彙）
                             let focusChar = targetChar.trim() || vocab.trim();
 
                             if (isShapeType) {
-                                // 考國字：答案是單一國字
                                 answer = focusChar;
-                                
-                                // 製作挖空提示
                                 let maskedVocab = vocab;
                                 if (vocab.includes(focusChar)) {
                                     maskedVocab = vocab.replace(new RegExp(focusChar, 'g'), '（　）');
@@ -341,7 +390,6 @@
                                 hint = `請寫出「${maskedVocab}」缺少的國字。`;
                                 
                                 if (cleanSentence) {
-                                    // 把例句中的單字也挖空
                                     hint += `\n例句：${cleanSentence.replace(new RegExp(vocab, 'g'), maskedVocab)}`;
                                 }
                                 
@@ -353,14 +401,11 @@
                                     hint += `\n\n(${extras.join('，')})`;
                                 }
                             } else if (isSoundType) {
-                                // 考注音：如果有多個注音（以空白分隔），則只取出目標字的那個注音
                                 let targetBopomofo = cleanBopomofo.trim();
                                 if (targetBopomofo) {
                                     const bopomofoParts = targetBopomofo.split(/\s+/);
                                     if (bopomofoParts.length > 1 && vocab.includes(focusChar)) {
-                                        // 找出目標字在詞彙中的位置
                                         const charIndex = vocab.indexOf(focusChar);
-                                        // 確保該位置在注音陣列的範圍內
                                         if (charIndex !== -1 && charIndex < bopomofoParts.length) {
                                             targetBopomofo = bopomofoParts[charIndex];
                                         }
@@ -368,7 +413,7 @@
                                 }
 
                                 answer = targetBopomofo;
-                                if (!answer) continue; // 沒有注音資料無法考注音
+                                if (!answer) continue;
                                 
                                 hint = `📍 請輸入「${vocab}」中「${focusChar}」字的注音。`;
                                 if (cleanSentence) hint += `\n例句：${cleanSentence}`;
@@ -378,9 +423,9 @@
                             if (answer && hint) {
                                 allDataRows.value.push({
                                     unit: unit.trim(),
-                                    word: answer, // 答案
-                                    hint: hint.trim(), // 提示文字
-                                    vocab: vocab.trim() // 原始詞彙，用於查字典
+                                    word: answer, 
+                                    hint: hint.trim(), 
+                                    vocab: vocab.trim() 
                                 });
                             }
                         }
@@ -394,7 +439,6 @@
                     try {
                         const baseUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
                         
-                        // 1. 取得預設工作表
                         const defaultRes = await fetch(baseUrl);
                         const defaultText = await defaultRes.text();
                         const defaultJson = JSON.parse(defaultText.match(/(?<=.*\().*(?=\);)/s)[0]);
@@ -402,7 +446,6 @@
                         
                         parseAndAddData(defaultJson, '預設單元');
 
-                        // 2. 掃描所有可能的工作表 (1~20)
                         const sheetNamesToTry = [];
                         const chineseMap = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
                         for(let i=1; i<=20; i++) {
@@ -430,7 +473,6 @@
                             }
                         });
 
-                        // 建立並排序單元選單
                         const uniqueUnitsNames = [...new Set(allDataRows.value.map(item => item.unit).filter(u => u))];
                         uniqueUnitsNames.sort((a, b) => getUnitNumber(a) - getUnitNumber(b));
                         
@@ -469,9 +511,11 @@
                         questions.value = [];
                         feedbackMessage.value = '此單元目前沒有題目資料';
                     }
+                    currentBatchIndex.value = 0;
                     currentIndex.value = 0;
                     failedQuestions.value = new Set();
-                    firstTryCorrectCount.value = 0;
+                    stageCorrectCount.value = 0;
+                    totalCorrectCount.value = 0;
                     resetInput();
                 };
 
@@ -484,7 +528,8 @@
                         
                         // 計分機制
                         if (!failedQuestions.value.has(currentIndex.value)) {
-                            firstTryCorrectCount.value++;
+                            stageCorrectCount.value++;
+                            totalCorrectCount.value++;
                         }
 
                         // 延遲 0.5 秒後自動換下一題
@@ -506,13 +551,30 @@
                 };
 
                 const nextQuestion = () => {
-                    if (currentIndex.value < questions.value.length - 1) {
+                    if (currentIndex.value < currentBatchQuestions.value.length - 1) {
                         currentIndex.value++;
                         resetInput();
                     } else {
                         inputStatus.value = 'correct';
-                        showSuccessModal.value = true;
+                        
+                        // 檢查是否還有下一批
+                        const hasNextStage = (currentBatchIndex.value + 1) * batchSize.value < questions.value.length;
+                        
+                        if (hasNextStage) {
+                            showStageModal.value = true;
+                        } else {
+                            showSuccessModal.value = true;
+                        }
                     }
+                };
+
+                const nextStage = () => {
+                    showStageModal.value = false;
+                    currentBatchIndex.value++;
+                    currentIndex.value = 0;
+                    stageCorrectCount.value = 0;
+                    failedQuestions.value = new Set();
+                    resetInput();
                 };
 
                 const prevQuestion = () => {
@@ -526,11 +588,13 @@
                     userAnswer.value = '';
                     inputStatus.value = '';
                     feedbackMessage.value = '';
-                    
-                    // 自動對焦到輸入框，方便鍵盤直接輸入
+                    resetInputFocus();
+                };
+
+                const resetInputFocus = () => {
                     nextTick(() => {
                         const input = document.getElementById('answerInput');
-                        if (input && !input.disabled && !showConfirmModal.value && !showSuccessModal.value) {
+                        if (input && !input.disabled && !showConfirmModal.value && !showStageModal.value && !showSuccessModal.value) {
                             input.focus();
                         }
                     });
@@ -547,6 +611,9 @@
                     doBackToMenu,
                     availableUnits,
                     currentUnit,
+                    batchSize,
+                    currentBatchIndex,
+                    currentBatchQuestions,
                     questions,
                     currentQuestion,
                     currentIndex,
@@ -558,9 +625,13 @@
                     showAnswer,
                     nextQuestion,
                     prevQuestion,
+                    nextStage,
                     showConfirmModal,
+                    showStageModal,
                     showSuccessModal,
-                    score
+                    stageScore,
+                    finalScore,
+                    resetInputFocus
                 };
             }
         }).mount('#app');
