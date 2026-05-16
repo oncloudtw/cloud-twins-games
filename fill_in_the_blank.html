@@ -13,7 +13,7 @@
     <style>
         body {
             font-family: 'Noto Sans TC', sans-serif;
-            background: linear-gradient(135deg, #e0f2fe 0%, #dcfce7 100%);
+            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); /* blue background */
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -62,27 +62,29 @@
 
 <body class="bg-slate-50 text-slate-800">
 
-    <div id="app" class="w-full max-w-4xl mx-auto h-screen md:h-[90vh] flex flex-col md:rounded-3xl shadow-2xl overflow-hidden bg-white/80 backdrop-blur-md border border-white/40">
+    <div id="app" class="w-full max-w-4xl mx-auto h-screen md:h-[90vh] flex flex-col md:rounded-3xl shadow-2xl overflow-hidden bg-white/80 backdrop-blur-md border border-white/40 relative">
 
         <!-- =================== 畫面一：主選單 =================== -->
         <div v-if="gameState === 'menu'" class="flex-1 flex flex-col justify-center items-center p-8 pop-in">
-            <div class="bg-white p-8 md:p-12 rounded-3xl shadow-xl w-full max-w-md border-2 border-emerald-100 relative">
-                <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-white rounded-full p-4 shadow-lg border-2 border-emerald-100">
-                    <i class="ph-duotone ph-pencil-simple text-5xl text-emerald-500"></i>
+            <div class="bg-white p-8 md:p-12 rounded-3xl shadow-xl w-full max-w-md border-2 border-blue-100 relative">
+                <div class="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-white rounded-full p-4 shadow-lg border-2 border-blue-100">
+                    <i class="ph-duotone ph-pencil-simple text-5xl text-blue-500"></i>
                 </div>
 
                 <h1 class="text-3xl md:text-4xl font-black text-center text-slate-800 mt-6 mb-8 tracking-wider">字音字形填空</h1>
 
                 <div class="space-y-6">
                     <div class="space-y-2">
-                        <label class="block text-sm font-bold text-emerald-700 mb-2">請選擇：</label>
-                        <select v-model="currentUnit" class="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 bg-white text-lg focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer font-medium text-slate-700">
+                        <label class="block text-sm font-bold text-blue-700 mb-2">請選擇：</label>
+                        <select v-model="currentUnit" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700">
                             <option v-if="loading" disabled selected>正在掃描題庫中...</option>
-                            <option v-else v-for="unit in availableUnits" :value="unit">{{ unit }}</option>
+                            <option v-else v-for="unitObj in availableUnits" :value="unitObj.name">
+                                {{ unitObj.name }} (共 {{ unitObj.count }} 題)
+                            </option>
                         </select>
                     </div>
 
-                    <button @click="startGame" :disabled="loading || !currentUnit" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button @click="startGame" :disabled="loading || !currentUnit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                         <i v-if="loading" class="ph-bold ph-spinner animate-spin"></i>
                         <i v-else class="ph-bold ph-play"></i>
                         <span>{{ loading ? '載入中...' : '開始練習' }}</span>
@@ -97,8 +99,8 @@
         <div v-if="gameState === 'playing'" class="flex-1 flex flex-col relative pop-in">
 
             <!-- 遊戲區標頭 -->
-            <div class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
-                <button @click="backToMenu" class="flex items-center gap-1 font-bold text-emerald-100 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20">
+            <div class="bg-blue-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
+                <button @click="confirmBackToMenu" class="flex items-center gap-1 font-bold text-blue-100 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20">
                     <i class="ph-bold ph-arrow-left"></i> 返回
                 </button>
                 <h2 class="text-xl font-black tracking-wide">{{ currentUnit }}</h2>
@@ -109,14 +111,14 @@
             </div>
 
             <!-- 控制面板 (移至上方) -->
-            <div class="bg-emerald-50 px-4 py-3 border-b border-emerald-200 flex justify-center gap-2 md:gap-4 relative z-10 shadow-sm flex-wrap">
-                <button @click="prevQuestion" :disabled="currentIndex === 0" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-emerald-700 bg-white border border-emerald-300 hover:bg-emerald-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <div class="bg-blue-50 px-4 py-3 border-b border-blue-200 flex justify-center gap-2 md:gap-4 relative z-10 shadow-sm flex-wrap">
+                <button @click="prevQuestion" :disabled="currentIndex === 0" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-blue-700 bg-white border border-blue-300 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="ph-bold ph-caret-left"></i> 上一題
                 </button>
                 <button @click="showAnswer" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 transition-colors">
                     <i class="ph-bold ph-lightbulb"></i> 看解答
                 </button>
-                <button @click="nextQuestion" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-emerald-700 bg-white border border-emerald-300 hover:bg-emerald-100 transition-colors shadow-sm">
+                <button @click="nextQuestion" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-blue-700 bg-white border border-blue-300 hover:bg-blue-100 transition-colors shadow-sm">
                     下一題 <i class="ph-bold ph-caret-right"></i>
                 </button>
             </div>
@@ -126,9 +128,9 @@
                 
                 <div v-if="questions.length > 0" class="w-full max-w-2xl">
                     <!-- 提示區塊 -->
-                    <div class="bg-white p-6 md:p-8 rounded-3xl shadow-md border-2 border-emerald-100 mb-8 relative">
-                        <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b-2 border-emerald-100 pb-3 gap-3">
-                            <div class="text-lg font-black text-emerald-600 flex items-center gap-2">
+                    <div class="bg-white p-6 md:p-8 rounded-3xl shadow-md border-2 border-blue-100 mb-8 relative">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b-2 border-blue-100 pb-3 gap-3">
+                            <div class="text-lg font-black text-blue-600 flex items-center gap-2">
                                 <i class="ph-fill ph-info text-2xl"></i> 提示 (解釋 / 例句)
                             </div>
                             
@@ -151,7 +153,7 @@
                     <!-- 輸入區塊 -->
                     <div class="flex flex-col items-center">
                         <input type="text" id="answerInput" v-model="userAnswer" @keyup.enter="checkAnswer"
-                            :class="['w-full max-w-sm text-center text-3xl md:text-4xl font-black py-4 px-6 rounded-2xl border-4 border-dashed border-slate-300 bg-white/50 focus:bg-white focus:border-emerald-500 focus:outline-none transition-all shadow-inner answer-input', inputStatus]" 
+                            :class="['w-full max-w-sm text-center text-3xl md:text-4xl font-black py-4 px-6 rounded-2xl border-4 border-dashed border-slate-300 bg-white/50 focus:bg-white focus:border-blue-500 focus:outline-none transition-all shadow-inner answer-input', inputStatus]" 
                             placeholder="點擊輸入"
                             :disabled="inputStatus === 'correct'">
                         
@@ -171,6 +173,35 @@
 
             </div>
         </div>
+
+        <!-- =================== Modal: 確認返回 =================== -->
+        <div v-if="showConfirmModal" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center">
+            <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
+                <div class="text-5xl text-rose-500 mb-4"><i class="ph-fill ph-warning-circle"></i></div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">確定要返回嗎？</h2>
+                <p class="text-slate-600 mb-8">目前的練習進度將會重置。</p>
+                <div class="flex gap-4 justify-center">
+                    <button @click="showConfirmModal = false" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded-xl transition-all">取消</button>
+                    <button @click="doBackToMenu" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-6 rounded-xl transition-all">確定返回</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== Modal: 過關結算 =================== -->
+        <div v-if="showSuccessModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center">
+            <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-star"></i></div>
+            <h2 class="text-3xl font-black text-blue-700 mb-2">太棒了！練習完成！</h2>
+            <p class="text-slate-600 font-medium mb-4">您已經完成「{{ currentUnit }}」的所有題目。</p>
+            
+            <div class="text-xl text-blue-800 font-bold mb-6 bg-blue-100 py-2 px-6 rounded-full border-2 border-blue-300">
+                答對率 (第一次答對): <span class="text-2xl">{{ score }}</span>%
+            </div>
+            
+            <button @click="doBackToMenu" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                回主選單 <i class="ph-bold ph-house"></i>
+            </button>
+        </div>
+
     </div>
 
     <!-- 保持原本的腳本 -->
@@ -183,7 +214,7 @@
         createApp({
             setup() {
                 const gameState = ref('menu'); // 'menu' 或 'playing'
-                const availableUnits = ref([]);
+                const availableUnits = ref([]); // 現在是 [{name: 'xxx', count: 10}]
                 const currentUnit = ref('');
                 const allDataRows = ref([]);
                 const questions = ref([]);
@@ -192,6 +223,17 @@
                 const inputStatus = ref(''); 
                 const feedbackMessage = ref('');
                 const loading = ref(true);
+
+                // Modals and Score
+                const showConfirmModal = ref(false);
+                const showSuccessModal = ref(false);
+                const failedQuestions = ref(new Set()); // 紀錄曾經答錯或看解答的題目索引
+                const firstTryCorrectCount = ref(0);
+
+                const score = computed(() => {
+                    if (questions.value.length === 0) return 0;
+                    return Math.round((firstTryCorrectCount.value / questions.value.length) * 100);
+                });
 
                 const currentQuestion = computed(() => {
                     return questions.value[currentIndex.value] || {};
@@ -206,7 +248,13 @@
                     });
                 };
 
-                const backToMenu = () => {
+                const confirmBackToMenu = () => {
+                    showConfirmModal.value = true;
+                };
+
+                const doBackToMenu = () => {
+                    showConfirmModal.value = false;
+                    showSuccessModal.value = false;
                     gameState.value = 'menu';
                 };
 
@@ -383,18 +431,23 @@
                         });
 
                         // 建立並排序單元選單
-                        const uniqueUnits = [...new Set(allDataRows.value.map(item => item.unit).filter(u => u))];
-                        uniqueUnits.sort((a, b) => getUnitNumber(a) - getUnitNumber(b));
+                        const uniqueUnitsNames = [...new Set(allDataRows.value.map(item => item.unit).filter(u => u))];
+                        uniqueUnitsNames.sort((a, b) => getUnitNumber(a) - getUnitNumber(b));
                         
-                        availableUnits.value = uniqueUnits;
+                        availableUnits.value = uniqueUnitsNames.map(name => {
+                            return {
+                                name: name,
+                                count: allDataRows.value.filter(item => item.unit === name).length
+                            };
+                        });
 
                         if (availableUnits.value.length > 0) {
                             const urlParams = new URLSearchParams(window.location.search);
                             const unitParam = urlParams.get('unit');
-                            if (unitParam && availableUnits.value.includes(unitParam)) {
+                            if (unitParam && uniqueUnitsNames.includes(unitParam)) {
                                 currentUnit.value = unitParam;
                             } else {
-                                currentUnit.value = availableUnits.value[0];
+                                currentUnit.value = availableUnits.value[0].name;
                             }
                         } else {
                             feedbackMessage.value = '試算表中找不到任何「字形」或「字音」的題目資料';
@@ -417,6 +470,8 @@
                         feedbackMessage.value = '此單元目前沒有題目資料';
                     }
                     currentIndex.value = 0;
+                    failedQuestions.value = new Set();
+                    firstTryCorrectCount.value = 0;
                     resetInput();
                 };
 
@@ -426,6 +481,12 @@
                     if (userAnswer.value.trim() === currentQuestion.value.word) {
                         inputStatus.value = 'correct';
                         feedbackMessage.value = '🎉 答對了！太棒了！';
+                        
+                        // 計分機制
+                        if (!failedQuestions.value.has(currentIndex.value)) {
+                            firstTryCorrectCount.value++;
+                        }
+
                         // 延遲 0.5 秒後自動換下一題
                         setTimeout(() => {
                             if (inputStatus.value === 'correct') nextQuestion();
@@ -433,6 +494,7 @@
                     } else {
                         inputStatus.value = 'incorrect';
                         feedbackMessage.value = '🤔 好像不太對喔，再試試看！';
+                        failedQuestions.value.add(currentIndex.value);
                     }
                 };
 
@@ -440,6 +502,7 @@
                     userAnswer.value = currentQuestion.value.word;
                     inputStatus.value = '';
                     feedbackMessage.value = '💡 解答在這裡！';
+                    failedQuestions.value.add(currentIndex.value);
                 };
 
                 const nextQuestion = () => {
@@ -448,7 +511,7 @@
                         resetInput();
                     } else {
                         inputStatus.value = 'correct';
-                        feedbackMessage.value = '🏆 恭喜！這個單元已經練習完畢囉！請點擊左上角「返回」選擇其他單元繼續挑戰。';
+                        showSuccessModal.value = true;
                     }
                 };
 
@@ -467,7 +530,7 @@
                     // 自動對焦到輸入框，方便鍵盤直接輸入
                     nextTick(() => {
                         const input = document.getElementById('answerInput');
-                        if (input && !input.disabled) {
+                        if (input && !input.disabled && !showConfirmModal.value && !showSuccessModal.value) {
                             input.focus();
                         }
                     });
@@ -480,7 +543,8 @@
                 return {
                     gameState,
                     startGame,
-                    backToMenu,
+                    confirmBackToMenu,
+                    doBackToMenu,
                     availableUnits,
                     currentUnit,
                     questions,
@@ -493,7 +557,10 @@
                     checkAnswer,
                     showAnswer,
                     nextQuestion,
-                    prevQuestion
+                    prevQuestion,
+                    showConfirmModal,
+                    showSuccessModal,
+                    score
                 };
             }
         }).mount('#app');
