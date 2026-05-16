@@ -130,7 +130,7 @@
                 </button>
                 <h2 class="text-xl font-black tracking-wide">{{ currentUnit }}</h2>
                 <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm flex gap-1 items-center">
-                    <span v-if="batchSize < 999" class="bg-blue-800 px-2 py-0.5 rounded mr-1">第 {{ currentBatchIndex + 1 }} 關</span>
+                    <span v-if="batchSize < 999" class="bg-blue-800 px-2 py-0.5 rounded mr-1">第 {{ currentBatchIndex + 1 }} / {{ totalBatches }} 關</span>
                     <span>進度: {{ currentIndex + 1 }} / {{ currentBatchQuestions.length }}</span>
                 </div>
             </div>
@@ -286,6 +286,11 @@
                     const start = currentBatchIndex.value * batchSize.value;
                     const end = start + batchSize.value;
                     return questions.value.slice(start, end);
+                });
+                
+                const totalBatches = computed(() => {
+                    if (questions.value.length === 0) return 0;
+                    return Math.ceil(questions.value.length / batchSize.value);
                 });
 
                 const currentQuestion = computed(() => {
@@ -678,7 +683,8 @@
                     resetInputFocus,
                     canResume,
                     resumeGame,
-                    restNow
+                    restNow,
+                    totalBatches
                 };
             }
         }).mount('#app');
