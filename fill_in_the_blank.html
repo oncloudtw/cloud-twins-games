@@ -11,15 +11,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     
     <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
         body {
             font-family: 'Noto Sans TC', sans-serif;
             background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 0;
-            padding: 1rem;
         }
 
         .pop-in {
@@ -61,22 +62,23 @@
     </style>
 </head>
 
-<body class="bg-slate-50 text-slate-800">
+<body class="text-slate-800">
 
-    <div id="app" class="w-full max-w-4xl mx-auto h-[95vh] md:h-[90vh] flex flex-col relative">
+    <div id="app" class="w-full h-full max-w-4xl mx-auto flex flex-col relative md:py-4">
 
         <!-- =================== 畫面一：主選單 =================== -->
-        <div v-if="gameState === 'menu'" class="flex-1 flex flex-col justify-center items-center pop-in w-full h-full">
+        <div v-if="gameState === 'menu'" class="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col items-center">
             
-            <header class="text-center mb-8 w-full pop-in">
-                <h1 class="text-4xl md:text-5xl font-black text-blue-600 mb-3 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
-                    <i class="ph-fill ph-pencil-simple"></i> 字音字形填空
-                </h1>
-                <p class="text-blue-700/80 font-medium">看懂解釋，填入正確的國字或注音！</p>
-            </header>
+            <div class="w-full max-w-md mt-auto mb-auto flex flex-col items-center py-4">
+                <header class="text-center mb-6 w-full pop-in">
+                    <h1 class="text-3xl md:text-4xl font-black text-blue-600 mb-3 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
+                        <i class="ph-fill ph-pencil-simple"></i> 字音字形填空
+                    </h1>
+                    <p class="text-blue-700/80 font-medium text-sm md:text-base">看懂解釋，填入正確的國字或注音！</p>
+                </header>
 
-            <div class="bg-white/80 backdrop-blur-md rounded-3xl p-8 md:p-12 shadow-xl w-full max-w-md border-2 border-blue-100 relative">
-                <h2 class="text-2xl font-bold text-center text-blue-800 mb-6">選擇挑戰單元</h2>
+                <div class="bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-10 shadow-xl w-full border-2 border-blue-100 relative pop-in">
+                    <h2 class="text-2xl font-bold text-center text-blue-800 mb-6">選擇挑戰單元</h2>
 
                 <div class="space-y-6">
                     <div class="space-y-2">
@@ -117,11 +119,12 @@
                 </div>
             </div>
 
-            <p class="mt-6 text-sm text-slate-500">{{ feedbackMessage || '系統會自動掃描試算表中所有工作表的「單元」欄位。' }}</p>
+            <p class="mt-6 text-sm text-slate-500 text-center">{{ feedbackMessage || '系統會自動掃描試算表中所有工作表的「單元」欄位。' }}</p>
+            </div>
         </div>
 
         <!-- =================== 畫面二：遊戲區 =================== -->
-        <div v-if="gameState === 'playing'" class="flex-1 flex flex-col relative pop-in bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/40">
+        <div v-if="gameState === 'playing'" class="flex-1 w-full flex flex-col relative pop-in bg-white/90 backdrop-blur-md md:rounded-3xl shadow-2xl overflow-hidden border border-blue-100">
 
             <!-- 遊戲區標頭 -->
             <div class="bg-blue-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
