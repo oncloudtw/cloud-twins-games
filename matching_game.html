@@ -521,15 +521,24 @@
                     <div class="flex items-center justify-between px-2 w-full">
                         <span class="flex-1 text-center md:pl-6">${idiomText}</span>
                         <div class="flex gap-1 md:gap-2">
-                            <a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-emerald-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-emerald-100 transition-colors shadow-sm" title="成語典 (圖解與語音)">
-                                <i class="ph-bold ph-book-bookmark"></i>
-                            </a>
-                            <a href="https://dacidian.18dao.net/zici/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-blue-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-blue-100 transition-colors shadow-sm" title="國語大辭典">
-                                <i class="ph-bold ph-books"></i>
-                            </a>
-                            <a href="https://cidian.18dao.net/zici/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-orange-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-orange-100 transition-colors shadow-sm" title="國語辭典">
-                                <i class="ph-bold ph-book-open"></i>
-                            </a>
+                            <div class="flex flex-col items-center gap-1">
+                                <a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-emerald-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-emerald-100 transition-colors shadow-sm" title="成語典 (圖解與語音)">
+                                    <i class="ph-bold ph-book-bookmark"></i>
+                                </a>
+                                <span class="text-[10px] leading-none text-emerald-100 font-normal">成語典</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <a href="https://dacidian.18dao.net/zici/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-blue-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-blue-100 transition-colors shadow-sm" title="國語大辭典">
+                                    <i class="ph-bold ph-books"></i>
+                                </a>
+                                <span class="text-[10px] leading-none text-emerald-100 font-normal">大辭典</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-1">
+                                <a href="https://cidian.18dao.net/zici/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-orange-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-orange-100 transition-colors shadow-sm" title="國語辭典">
+                                    <i class="ph-bold ph-book-open"></i>
+                                </a>
+                                <span class="text-[10px] leading-none text-emerald-100 font-normal">辭典</span>
+                            </div>
                         </div>
                     </div>
                 `;
