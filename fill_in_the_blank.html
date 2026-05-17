@@ -162,15 +162,15 @@
                             <!-- 三大字典按鈕 -->
                             <div v-if="currentQuestion.vocab && currentQuestion.vocab.length >= 2" class="flex gap-2 self-end md:self-auto flex-wrap justify-end">
                                 <a :href="'https://chengyu.18dao.net/chengyu/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-emerald-50 text-emerald-600 rounded-full px-3 py-1.5 hover:bg-emerald-200 transition-colors shadow-sm border border-emerald-200 text-xs md:text-sm font-bold" title="成語典 (圖解與語音)">
-                                    <i class="ph-bold ph-book-bookmark text-base md:text-lg"></i>
+                                    <span class="text-base md:text-lg leading-none">📖</span>
                                     <span>成語典</span>
                                 </a>
                                 <a :href="'https://dacidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-blue-50 text-blue-600 rounded-full px-3 py-1.5 hover:bg-blue-200 transition-colors shadow-sm border border-blue-200 text-xs md:text-sm font-bold" title="國語大辭典">
-                                    <i class="ph-bold ph-books text-base md:text-lg"></i>
+                                    <span class="text-base md:text-lg leading-none">📚</span>
                                     <span>大辭典</span>
                                 </a>
                                 <a :href="'https://cidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-orange-50 text-orange-600 rounded-full px-3 py-1.5 hover:bg-orange-200 transition-colors shadow-sm border border-orange-200 text-xs md:text-sm font-bold" title="國語辭典">
-                                    <i class="ph-bold ph-book-open text-base md:text-lg"></i>
+                                    <span class="text-base md:text-lg leading-none">📙</span>
                                     <span>辭典</span>
                                 </a>
                             </div>
