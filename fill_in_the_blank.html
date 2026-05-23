@@ -203,15 +203,15 @@
                             
                             <!-- 三大字典按鈕 -->
                             <div v-if="currentQuestion.vocab && currentQuestion.vocab.length >= 2" class="flex gap-2 self-end md:self-auto flex-wrap justify-end">
-                                <a :href="'https://chengyu.18dao.net/chengyu/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-emerald-50 text-emerald-600 rounded-full px-3 py-1.5 hover:bg-emerald-200 transition-colors shadow-sm border border-emerald-200 text-xs md:text-sm font-bold" title="成語典 (圖解與語音)">
+                                <a onclick="trackDictClickGlobal(this.dataset.vocab, '成語典')" :data-vocab="currentQuestion.vocab" :href="'https://chengyu.18dao.net/chengyu/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-emerald-50 text-emerald-600 rounded-full px-3 py-1.5 hover:bg-emerald-200 transition-colors shadow-sm border border-emerald-200 text-xs md:text-sm font-bold" title="成語典 (圖解與語音)">
                                     <span class="text-base md:text-lg leading-none">📖</span>
                                     <span>成語典</span>
                                 </a>
-                                <a :href="'https://dacidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-blue-50 text-blue-600 rounded-full px-3 py-1.5 hover:bg-blue-200 transition-colors shadow-sm border border-blue-200 text-xs md:text-sm font-bold" title="國語大辭典">
+                                <a onclick="trackDictClickGlobal(this.dataset.vocab, '漢語大詞典')" :data-vocab="currentQuestion.vocab" :href="'https://dacidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-blue-50 text-blue-600 rounded-full px-3 py-1.5 hover:bg-blue-200 transition-colors shadow-sm border border-blue-200 text-xs md:text-sm font-bold" title="國語大辭典">
                                     <span class="text-base md:text-lg leading-none">📚</span>
                                     <span>大辭典</span>
                                 </a>
-                                <a :href="'https://cidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-orange-50 text-orange-600 rounded-full px-3 py-1.5 hover:bg-orange-200 transition-colors shadow-sm border border-orange-200 text-xs md:text-sm font-bold" title="國語辭典">
+                                <a onclick="trackDictClickGlobal(this.dataset.vocab, '漢語詞典')" :data-vocab="currentQuestion.vocab" :href="'https://cidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-orange-50 text-orange-600 rounded-full px-3 py-1.5 hover:bg-orange-200 transition-colors shadow-sm border border-orange-200 text-xs md:text-sm font-bold" title="國語辭典">
                                     <span class="text-base md:text-lg leading-none">📙</span>
                                     <span>辭典</span>
                                 </a>
@@ -760,14 +760,30 @@
                     resetInputFocus,
                     canResume,
                     resumeGame,
-                        restNow,
+                    restNow,
                     totalBatches
                 };
             }
         }).mount('#app');
 
-        // =================== 全域 Vanilla JS 登入邏輯 ===================
+        // =================== 全域 Vanilla JS 登入與追蹤邏輯 ===================
         window.currentUser = null;
+
+        window.trackDictClickGlobal = function(word, dictType) {
+            if (!GAS_API_URL) return;
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'logDictClick',
+                    data: {
+                        username: window.currentUser || '訪客',
+                        game: '字音字形填空',
+                        word: word,
+                        dictType: dictType
+                    }
+                })
+            }).catch(e => console.error(e));
+        };
 
         async function doLoginAction() {
             const btn = document.getElementById('btn-login');
