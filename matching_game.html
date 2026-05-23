@@ -106,8 +106,9 @@
 
         <!-- Header -->
         <header class="text-center mb-4 md:mb-6 w-full flex-shrink-0 pop-in pt-4 md:pt-0 relative">
-            <div id="user-greeting" class="absolute right-0 top-0 text-sm font-bold text-slate-500 bg-white/80 px-3 py-1 rounded-full shadow-sm hidden">
-                Hi, <span id="user-greeting-name"></span>
+            <div id="user-greeting" class="absolute right-0 top-0 text-sm font-bold text-slate-500 bg-white/80 px-3 py-2 rounded-xl shadow-sm hidden flex-col items-end gap-1 z-50">
+                <div>Hi, <span id="user-greeting-name"></span></div>
+                <button id="btn-logout" class="text-xs text-rose-500 hover:text-rose-600 underline">登出更換玩家</button>
             </div>
             <h1
                 class="text-3xl md:text-4xl font-black text-emerald-600 mb-2 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
@@ -295,6 +296,7 @@
                 if(greeting && greetingName) {
                     greetingName.textContent = currentUser;
                     greeting.classList.remove('hidden');
+                    greeting.classList.add('flex');
                 }
             }
             await initData();
@@ -594,6 +596,7 @@
                 if(greeting && greetingName) {
                     greetingName.textContent = currentUser;
                     greeting.classList.remove('hidden');
+                    greeting.classList.add('flex');
                 }
                 
                 btn.innerHTML = '<span>登入開始挑戰</span>';
@@ -629,6 +632,7 @@
                     if(greeting && greetingName) {
                         greetingName.textContent = currentUser;
                         greeting.classList.remove('hidden');
+                        greeting.classList.add('flex');
                     }
                 } else {
                     errDiv.textContent = json.error || '登入失敗，請檢查帳號密碼';
@@ -655,6 +659,15 @@
         });
 
         // 按鈕綁定 (原本被刪除的)
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            localStorage.removeItem('gameSession');
+            currentUser = null;
+            document.getElementById('user-greeting').classList.add('hidden');
+            document.getElementById('user-greeting').classList.remove('flex');
+            document.getElementById('modal-login').classList.remove('hidden');
+            returnToMenu();
+        });
+
         document.getElementById('btn-next-batch').addEventListener('click', () => {
             batchIndex++;
             renderBatch();
