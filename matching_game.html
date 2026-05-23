@@ -284,6 +284,7 @@
         let selectedMeaning = null;
         let matchedPairs = [];
         let failedIdiomIds = new Set();
+        let unitFailedIdiomIds = new Set();
 
         // 初始化
         async function init() {
@@ -447,6 +448,7 @@
             currentUnitData = shuffleArray(allIdiomsData.filter(item => item.unit === unit));
             batchIndex = 0;
             failedIdiomIds.clear();
+            unitFailedIdiomIds.clear();
             document.getElementById('current-unit-title').textContent = unit;
             document.getElementById('screen-menu').classList.add('hidden');
             document.getElementById('screen-game').classList.remove('hidden');
@@ -474,8 +476,8 @@
 
             leftItems.forEach((item, index) => {
                 const btn = document.createElement('button');
-                btn.className = 'idiom-btn w-full bg-white border-2 border-emerald-200 text-emerald-800 font-bold text-lg md:text-2xl py-3 px-2 rounded-2xl shadow-sm hover:border-emerald-400 hover:shadow-md transition-all active:scale-95 z-30 select-none relative group';
-                btn.innerHTML = `<div class="flex items-center justify-between px-1 md:px-2 w-full h-full pointer-events-none"><span class="flex-1 text-center">${item.idiom}</span><div class="flex gap-1 pointer-events-auto"><a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation()" class="flex flex-col items-center justify-center bg-emerald-50 hover:bg-emerald-200 rounded-lg p-1 text-emerald-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10">📖</a><a href="https://dacidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation()" class="flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-200 rounded-lg p-1 text-blue-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10">📚</a><a href="https://cidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation()" class="flex flex-col items-center justify-center bg-orange-50 hover:bg-orange-200 rounded-lg p-1 text-orange-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10">📙</a></div></div>`;
+                btn.className = 'idiom-btn w-full bg-white border-2 border-emerald-200 text-emerald-800 font-bold py-3 px-1 md:px-2 rounded-2xl shadow-sm hover:border-emerald-400 hover:shadow-md transition-all active:scale-95 z-30 select-none relative group';
+                btn.innerHTML = `<div class="flex items-center justify-start w-full h-full pointer-events-none gap-1 md:gap-2"><div class="flex gap-1 pointer-events-auto shrink-0"><a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation()" class="flex flex-col items-center justify-center bg-emerald-50 hover:bg-emerald-200 rounded-lg p-1 text-emerald-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10 text-lg md:text-xl">📖</a><a href="https://dacidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation()" class="flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-200 rounded-lg p-1 text-blue-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10 text-lg md:text-xl">📚</a><a href="https://cidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation()" class="flex flex-col items-center justify-center bg-orange-50 hover:bg-orange-200 rounded-lg p-1 text-orange-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10 text-lg md:text-xl">📙</a></div><span class="flex-1 text-center text-lg md:text-2xl tracking-tight leading-tight break-keep">${item.idiom}</span></div>`;
                 btn.dataset.id = item.idiom;
                 btn.style.animationDelay = `${index * 0.1}s`;
                 btn.classList.add('pop-in');
@@ -534,6 +536,7 @@
             } else {
                 showToast("不對喔，再試試！", "error");
                 failedIdiomIds.add(selectedIdiom.id);
+                unitFailedIdiomIds.add(selectedIdiom.id);
                 [idiomElem, meaningElem].forEach(el => {
                     el.classList.remove('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
                     el.classList.add('bg-red-100', 'border-red-400', 'shake-animation');
@@ -560,12 +563,21 @@
                     const isFullyComplete = ((batchIndex + 1) * BATCH_SIZE) >= currentUnitData.length;
                     modal.classList.remove('hidden');
                     modal.classList.add('flex');
+                    
+                    const batchTotal = currentBatch.length;
+                    const batchCorrect = Math.max(0, batchTotal - failedIdiomIds.size);
+                    const batchScore = Math.round((batchCorrect / batchTotal) * 100);
+                    
                     if (isFullyComplete) {
-                        document.getElementById('score-text').textContent = "本單元挑戰完成！";
+                        const finalCorrect = Math.max(0, currentUnitData.length - unitFailedIdiomIds.size);
+                        const finalScore = Math.round((finalCorrect / currentUnitData.length) * 100);
+                        document.getElementById('score-text').innerHTML = `本關得分: ${batchScore} 分<br><br><span class="text-2xl text-blue-700">單元總答對率: ${finalScore}%</span>`;
                         document.getElementById('score-text').classList.remove('hidden');
                         document.getElementById('btn-next-batch').classList.add('hidden');
                         document.getElementById('btn-finish-unit').classList.remove('hidden');
                     } else {
+                        document.getElementById('score-text').textContent = `本關得分: ${batchScore} 分`;
+                        document.getElementById('score-text').classList.remove('hidden');
                         document.getElementById('btn-next-batch').classList.remove('hidden');
                         document.getElementById('btn-finish-unit').classList.add('hidden');
                     }
