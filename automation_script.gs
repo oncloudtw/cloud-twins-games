@@ -2,6 +2,11 @@
 // API 端點與資料庫操作 (用於遊戲前端追蹤)
 // =========================================================================
 
+const CONFIG = {
+  // 請將這裡替換成您實際的 Google 試算表 ID (也就是網址列 /d/ 後面到 /edit 前面的那一長串英文數字)
+  SPREADSHEET_ID: '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo'
+};
+
 // 初始化工作表
 function ensureSheetsExist() {
   const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
