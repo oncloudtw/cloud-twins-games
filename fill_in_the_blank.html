@@ -809,7 +809,7 @@
                     if (!GAS_API_URL || !currentUser.value) return;
                     const timeSpent = Math.floor((Date.now() - batchStartTime.value) / 1000);
                     const wrongWords = Array.from(failedQuestions.value).map(idx => questions.value[idx].word);
-                    const unitWithStage = `${currentUnit.value} (第${currentBatchIndex.value + 1}關)`;
+                    const unitWithStage = `${currentUnit.value} (第${currentBatchIndex.value + 1}/${totalBatches.value}關)`;
 
                     fetch(GAS_API_URL, {
                         method: 'POST',
