@@ -853,8 +853,75 @@
             }, 1000);
         }
 
-        // 啟動系統，自動掃描試算表
+        // 登入邏輯
+        document.getElementById('btn-login').addEventListener('click', async () => {
+            const un = document.getElementById('login-username').value.trim();
+            const pw = document.getElementById('login-password').value.trim();
+            const errDiv = document.getElementById('login-error');
+            
+            if(!un || !pw) {
+                errDiv.textContent = "請輸入帳號與密碼";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            const btn = document.getElementById('btn-login');
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> <span>登入中...請稍候</span>';
+            btn.disabled = true;
+
+            if (!GAS_API_URL) {
+                // 若未設定 API URL，假登入直接放行
+                currentUser = un;
+                localStorage.setItem('gameSession', un);
+                document.getElementById('modal-login').classList.add('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'login',
+                        data: { username: un, password: pw }
+                    })
+                });
+                
+                // GAS 若權限錯誤或尚未部署，可能會回傳 302 並導向 HTML，導致 res.json() 失敗
+                let json;
+                try {
+                    json = await res.json();
+                } catch(e) {
+                    throw new Error("無法解析伺服器回傳資料，請確認您已將 Apps Script 正確部署為「所有人」皆可存取。");
+                }
+
+                if(json.success) {
+                    currentUser = un;
+                    localStorage.setItem('gameSession', un);
+                    document.getElementById('modal-login').classList.add('hidden');
+                } else {
+                    errDiv.textContent = json.error || '登入失敗，請檢查帳號密碼';
+                    errDiv.classList.remove('hidden');
+                }
+            } catch(e) {
+                errDiv.textContent = e.message || '網路連線失敗，請檢查 API 網址是否正確。';
+                errDiv.classList.remove('hidden');
+                alert(errDiv.textContent);
+            } finally {
+                btn.innerHTML = '<span>登入開始挑戰</span>';
+                btn.disabled = false;
+            }
+        });
+
+        // 啟動系統
         initData();
+
+        // 檢查登入狀態
+        window.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('gameSession')) {
+                currentUser = localStorage.getItem('gameSession');
+                document.getElementById('modal-login').classList.add('hidden');
+            }
+        });
 
     </script>
 
