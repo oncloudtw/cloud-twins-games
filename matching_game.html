@@ -10,7 +10,8 @@
         rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <style>
-        html, body {
+        html,
+        body {
             height: 100%;
             margin: 0;
             padding: 0;
@@ -102,22 +103,25 @@
 <body class="text-slate-800">
 
     <div class="w-full h-full max-w-4xl mx-auto flex flex-col overflow-hidden relative md:py-4 md:px-4">
-        
+
         <!-- Header -->
         <header class="text-center mb-4 md:mb-6 w-full flex-shrink-0 pop-in pt-4 md:pt-0">
-            <h1 class="text-3xl md:text-4xl font-black text-emerald-600 mb-2 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
+            <h1
+                class="text-3xl md:text-4xl font-black text-emerald-600 mb-2 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
                 <i class="ph-fill ph-puzzle-piece"></i> 成語連連看
             </h1>
             <p class="text-emerald-700/80 font-medium text-sm md:text-base">看懂成語，輕鬆配對！將左邊的成語連到右邊正確的解釋。</p>
         </header>
 
         <!-- 遊戲主要容器 -->
-        <main class="w-full flex-1 bg-white/90 backdrop-blur-md md:rounded-3xl shadow-xl border border-emerald-100 overflow-hidden relative flex flex-col pop-in">
+        <main
+            class="w-full flex-1 bg-white/90 backdrop-blur-md md:rounded-3xl shadow-xl border border-emerald-100 overflow-hidden relative flex flex-col pop-in">
 
             <!-- =================== 畫面一：設定與選單 =================== -->
             <div id="screen-menu" class="flex-1 overflow-y-auto flex flex-col p-4 md:p-8">
-                
-                <div class="m-auto bg-emerald-50 rounded-2xl p-6 md:p-10 w-full max-w-md shadow-inner border border-emerald-100">
+
+                <div
+                    class="m-auto bg-emerald-50 rounded-2xl p-6 md:p-10 w-full max-w-md shadow-inner border border-emerald-100">
                     <h2 class="text-2xl font-bold text-center text-emerald-800 mb-6">選擇挑戰單元</h2>
 
                     <div class="space-y-4">
@@ -142,12 +146,47 @@
                 </p>
             </div>
 
+            <!-- =================== 登入蓋板 (Login Modal) =================== -->
+            <div id="modal-login"
+                class="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex flex-col justify-center items-center p-6 text-center">
+                <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
+                    <div
+                        class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mx-auto mb-4 text-3xl">
+                        <i class="ph-bold ph-user-circle"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">學生登入</h2>
+                    <p class="text-slate-500 mb-6 text-sm">請輸入您的帳號與密碼，系統會自動為您建立紀錄。</p>
+
+                    <div class="space-y-4 text-left">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">帳號</label>
+                            <input id="login-username" type="text"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                placeholder="例如：學號">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-1">密碼</label>
+                            <input id="login-password" type="password"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                placeholder="例如：預設密碼">
+                        </div>
+
+                        <div id="login-error" class="text-red-500 text-sm font-bold text-center mt-2 hidden"></div>
+
+                        <button id="btn-login"
+                            class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-4">
+                            <span>登入開始挑戰</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <!-- =================== 畫面二：遊戲區 =================== -->
             <div id="screen-game" class="hidden flex-1 flex flex-col relative overflow-hidden">
 
                 <!-- 遊戲區標頭 -->
-                <div class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
+                <div
+                    class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
                     <button id="btn-back"
                         class="flex items-center gap-1 font-bold text-emerald-100 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20">
                         <i class="ph-bold ph-arrow-left"></i> 返回
@@ -191,7 +230,9 @@
                     <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-star"></i></div>
                     <h2 class="text-3xl font-black text-emerald-700 mb-2">太棒了！完全正確！</h2>
                     <p id="success-desc" class="text-slate-600 font-medium mb-4">您已經完成本回合的配對。</p>
-                    <div id="score-text" class="text-xl text-emerald-800 font-bold mb-6 hidden bg-emerald-100 py-2 px-6 rounded-full border-2 border-emerald-300"></div>
+                    <div id="score-text"
+                        class="text-xl text-emerald-800 font-bold mb-6 hidden bg-emerald-100 py-2 px-6 rounded-full border-2 border-emerald-300">
+                    </div>
                     <div class="flex gap-4">
                         <button id="btn-next-batch"
                             class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
@@ -212,8 +253,10 @@
                         <h2 class="text-2xl font-bold text-slate-800 mb-2">確定要返回嗎？</h2>
                         <p class="text-slate-600 mb-8">目前的遊戲進度將會重置。</p>
                         <div class="flex gap-4 justify-center">
-                            <button id="btn-confirm-cancel" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded-xl transition-all">取消</button>
-                            <button id="btn-confirm-yes" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-6 rounded-xl transition-all">確定返回</button>
+                            <button id="btn-confirm-cancel"
+                                class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded-xl transition-all">取消</button>
+                            <button id="btn-confirm-yes"
+                                class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-6 rounded-xl transition-all">確定返回</button>
                         </div>
                     </div>
                 </div>
@@ -227,9 +270,13 @@
         // 1. 系統狀態與變數
         // ==========================================
         const SHEET_ID = '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo';
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzEx9q1G45YmJqwuo4GMa77zzfHsaxrcq03woKK8HgQj6xhm9duqFB26cjlW0hdOFN_cw/exec'; // 老師：請將您部署的 Google Apps Script Web App 網址貼在這裡。若留空，則不啟用後端紀錄。
 
         let allIdiomsData = []; // 包含所有掃描到的資料
         let unitsList = [];     // 單元清單
+
+        let currentUser = null; // 當前登入使用者
+        let batchStartTime = 0; // 紀錄階段開始時間
 
         // 遊戲中狀態
         let currentUnitData = []; // 該單元所有成語
@@ -259,15 +306,15 @@
                 const defaultText = await defaultRes.text();
                 const defaultJson = JSON.parse(defaultText.match(/(?<=.*\().*(?=\);)/s)[0]);
                 const defaultSig = defaultJson.sig;
-                
+
                 parseAndAddData(defaultJson, '預設單元');
 
                 // 2. 掃描所有可能的工作表，確保不會漏掉不同分頁的資料
                 const sheetNamesToTry = [];
-                const chineseMap = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
-                for(let i=1; i<=20; i++) {
+                const chineseMap = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'];
+                for (let i = 1; i <= 20; i++) {
                     sheetNamesToTry.push(i.toString());
-                    sheetNamesToTry.push(`第${chineseMap[i-1]}單元`);
+                    sheetNamesToTry.push(`第${chineseMap[i - 1]}單元`);
                 }
 
                 const promises = sheetNamesToTry.map(name => {
@@ -331,7 +378,7 @@
                 const meaning = row.c[meaningIdx]?.v;
                 let targetChar = charIdx >= 0 ? (row.c[charIdx]?.v || '') : '';
                 if (targetChar === '(無)' || targetChar === '(教材無特別註解)') targetChar = '';
-                
+
                 // 如果表格內有單元欄位且有值就用它，否則用工作表名稱
                 let unit = unitIdx >= 0 && row.c[unitIdx]?.v ? row.c[unitIdx].v : formattedSheetName;
 
@@ -339,7 +386,7 @@
                     // 根據要求：從試算表中的"類別"欄位抓取"成語"的部分
                     // 如果類別是「試題補充」，且沒有明確的指定字形考點，且字串長度大於等於 3，就當作是成語
                     let isIdiomType = type && (type.includes('成語') || (type.includes('試題補充') && idiom.length >= 3 && !targetChar));
-                    
+
                     if (isIdiomType) {
                         allIdiomsData.push({
                             unit: unit.trim(),
@@ -427,20 +474,26 @@
             document.getElementById('screen-game').classList.remove('hidden');
             document.getElementById('screen-game').classList.add('pop-in');
 
-            loadBatch();
+            renderBatch();
         });
 
-        // 載入當前回合
-        function loadBatch() {
-            // 清除狀態
+        // 渲染當前回合
+        function renderBatch() {
+            const colIdioms = document.getElementById('col-idioms');
+            const colMeanings = document.getElementById('col-meanings');
+            colIdioms.innerHTML = '';
+            colMeanings.innerHTML = '';
+
+            // 清空狀態
             selectedIdiom = null;
             selectedMeaning = null;
             matchedPairs = [];
-            clearLines();
-            document.getElementById('modal-success').classList.add('hidden');
+            failedIdiomIds.clear();
+            batchStartTime = Date.now(); // 開始計時
 
-            // 取出這批資料
-            currentBatch = currentUnitData.slice(batchIndex * BATCH_SIZE, (batchIndex + 1) * BATCH_SIZE);
+            // 1. 取得當前批次的資料
+            const startIdx = batchIndex * BATCH_SIZE;
+            currentBatch = currentUnitData.slice(startIdx, startIdx + BATCH_SIZE);
 
             updateProgressText();
 
@@ -448,18 +501,12 @@
             const leftItems = shuffleArray([...currentBatch]);
             const rightItems = shuffleArray([...currentBatch]);
 
-            const colIdioms = document.getElementById('col-idioms');
-            const colMeanings = document.getElementById('col-meanings');
-
-            colIdioms.innerHTML = '';
-            colMeanings.innerHTML = '';
-
             // 建立左欄按鈕 (成語)
             leftItems.forEach((item, index) => {
                 const btn = document.createElement('button');
                 btn.className = 'idiom-btn w-full bg-white border-2 border-emerald-200 text-emerald-800 font-bold text-lg md:text-2xl py-4 md:py-5 px-2 rounded-2xl shadow-sm hover:border-emerald-400 hover:shadow-md transition-all active:scale-95 z-30 select-none';
                 btn.textContent = item.idiom;
-                btn.dataset.id = item.idiom; // 使用成語字面當 ID
+                btn.dataset.id = item.idiom;
                 btn.style.animationDelay = `${index * 0.1}s`;
                 btn.classList.add('pop-in');
 
@@ -472,13 +519,15 @@
                 const card = document.createElement('button');
                 card.className = 'meaning-btn w-full bg-white border-2 border-slate-200 text-slate-700 font-medium text-sm md:text-lg py-3 md:py-4 px-4 rounded-2xl shadow-sm hover:border-emerald-400 hover:shadow-md transition-all text-left z-30 active:scale-95 select-none';
                 card.textContent = item.meaning;
-                card.dataset.id = item.idiom; // 對應的成語 ID，用於檢查答案
+                card.dataset.id = item.idiom;
                 card.style.animationDelay = `${index * 0.1}s`;
                 card.classList.add('pop-in');
 
                 card.addEventListener('click', () => selectItem('meaning', card));
                 colMeanings.appendChild(card);
             });
+
+            document.getElementById('modal-success').classList.add('hidden');
         }
 
         // 點擊選擇邏輯
@@ -528,19 +577,64 @@
                         <span class="flex-1 text-center md:pl-6">${idiomText}</span>
                         <div class="flex gap-1 md:gap-2">
                             <div class="flex flex-col items-center gap-1">
-                                <a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-emerald-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-emerald-100 transition-colors shadow-sm text-lg md:text-xl leading-none" title="成語典 (圖解與語音)">
+                                <a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(idiomText)}" target="_blank" onclick="
+                                    if (GAS_API_URL && currentUser) {
+                                        fetch(GAS_API_URL, {
+                                            method: 'POST',
+                                            body: JSON.stringify({
+                                                action: 'logDictClick',
+                                                data: {
+                                                    username: currentUser,
+                                                    game: '成語連連看',
+                                                    word: '${idiomText}',
+                                                    dictType: '成語典'
+                                                }
+                                            })
+                                        }).catch(e => console.error(e));
+                                    }
+                                    event.stopPropagation()" class="flex items-center justify-center bg-white text-emerald-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-emerald-100 transition-colors shadow-sm text-lg md:text-xl leading-none" title="成語典 (圖解與語音)">
                                     📖
                                 </a>
                                 <span class="text-[10px] leading-none text-emerald-100 font-normal">成語典</span>
                             </div>
                             <div class="flex flex-col items-center gap-1">
-                                <a href="https://dacidian.18dao.net/zici/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-blue-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-blue-100 transition-colors shadow-sm text-lg md:text-xl leading-none" title="國語大辭典">
+                                <a href="https://dacidian.18dao.net/zici/${encodeURIComponent(idiomText)}" target="_blank" onclick="
+                                    if (GAS_API_URL && currentUser) {
+                                        fetch(GAS_API_URL, {
+                                            method: 'POST',
+                                            body: JSON.stringify({
+                                                action: 'logDictClick',
+                                                data: {
+                                                    username: currentUser,
+                                                    game: '成語連連看',
+                                                    word: '${idiomText}',
+                                                    dictType: '大辭典'
+                                                }
+                                            })
+                                        }).catch(e => console.error(e));
+                                    }
+                                    event.stopPropagation()" class="flex items-center justify-center bg-white text-blue-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-blue-100 transition-colors shadow-sm text-lg md:text-xl leading-none" title="國語大辭典">
                                     📚
                                 </a>
                                 <span class="text-[10px] leading-none text-emerald-100 font-normal">大辭典</span>
                             </div>
                             <div class="flex flex-col items-center gap-1">
-                                <a href="https://cidian.18dao.net/zici/${encodeURIComponent(idiomText)}" target="_blank" onclick="event.stopPropagation()" class="flex items-center justify-center bg-white text-orange-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-orange-100 transition-colors shadow-sm text-lg md:text-xl leading-none" title="國語辭典">
+                                <a href="https://cidian.18dao.net/zici/${encodeURIComponent(idiomText)}" target="_blank" onclick="
+                                    if (GAS_API_URL && currentUser) {
+                                        fetch(GAS_API_URL, {
+                                            method: 'POST',
+                                            body: JSON.stringify({
+                                                action: 'logDictClick',
+                                                data: {
+                                                    username: currentUser,
+                                                    game: '成語連連看',
+                                                    word: '${idiomText}',
+                                                    dictType: '辭典'
+                                                }
+                                            })
+                                        }).catch(e => console.error(e));
+                                    }
+                                    event.stopPropagation()" class="flex items-center justify-center bg-white text-orange-600 rounded-full w-8 h-8 md:w-10 md:h-10 hover:bg-orange-100 transition-colors shadow-sm text-lg md:text-xl leading-none" title="國語辭典">
                                     📙
                                 </a>
                                 <span class="text-[10px] leading-none text-emerald-100 font-normal">辭典</span>
@@ -563,7 +657,7 @@
             } else {
                 // 配對失敗
                 showToast("不對喔，再試試！", "error");
-                
+
                 // 記錄答錯的成語 ID，讓分數計算時扣除
                 failedIdiomIds.add(selectedIdiom.id);
 
@@ -597,21 +691,51 @@
                     modal.classList.remove('hidden');
                     modal.classList.add('flex');
 
+                    // 記錄成績
+                    if (GAS_API_URL && currentUser) {
+                        const timeSpent = Math.floor((Date.now() - batchStartTime) / 1000);
+                        const wrongItems = Array.from(failedIdiomIds).map(id => {
+                            const it = currentBatch.find(i => i.id === id);
+                            return it ? it.idiom : id;
+                        });
+                        const score = Math.max(0, 100 - (wrongItems.length * 10)); // 每個錯扣 10 分
+
+                        fetch(GAS_API_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'saveGameRecord',
+                                data: {
+                                    username: currentUser,
+                                    game: '成語連連看',
+                                    unit: document.getElementById('current-unit-title').textContent,
+                                    score: score,
+                                    timeSpent: timeSpent,
+                                    wrongAnswers: wrongItems
+                                }
+                            })
+                        }).catch(e => console.error(e));
+                    }
+
                     if (isFullyComplete) {
-                        document.getElementById('success-desc').textContent = "恭喜您完成了本單元所有的成語！";
-                        
-                        // 計算分數
-                        const firstTryCorrect = currentUnitData.length - failedIdiomIds.size;
-                        const scorePercent = Math.round((firstTryCorrect / currentUnitData.length) * 100);
-                        document.getElementById('score-text').textContent = `🎯 一次全對：${firstTryCorrect} / ${currentUnitData.length} 題 (得分：${scorePercent} 分)`;
+                        if (failedIdiomIds.size === 0) {
+                            document.getElementById('success-desc').textContent = "完美過關！一次就全部配對正確。";
+                        } else {
+                            document.getElementById('success-desc').textContent = `過關了！但有 ${failedIdiomIds.size} 個成語配對錯誤。`;
+                        }
+
+                        document.getElementById('score-text').textContent = "本單元挑戰完成！";
                         document.getElementById('score-text').classList.remove('hidden');
 
                         document.getElementById('btn-next-batch').classList.add('hidden');
                         document.getElementById('btn-finish-unit').classList.remove('hidden');
                     } else {
-                        document.getElementById('success-desc').textContent = "繼續挑戰下一批成語。";
+                        if (failedIdiomIds.size === 0) {
+                            document.getElementById('success-desc').textContent = "本批次全對，繼續挑戰！";
+                        } else {
+                            document.getElementById('success-desc').textContent = `這批有 ${failedIdiomIds.size} 個配對錯誤，請繼續挑戰下一批。`;
+                        }
                         document.getElementById('score-text').classList.add('hidden');
-                        
+
                         document.getElementById('btn-next-batch').classList.remove('hidden');
                         document.getElementById('btn-finish-unit').classList.add('hidden');
                     }
