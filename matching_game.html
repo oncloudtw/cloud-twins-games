@@ -752,7 +752,7 @@
         // 下一批 / 結束
         document.getElementById('btn-next-batch').addEventListener('click', () => {
             batchIndex++;
-            loadBatch();
+            renderBatch();
         });
 
         document.getElementById('btn-finish-unit').addEventListener('click', () => {
@@ -858,8 +858,8 @@
             const un = document.getElementById('login-username').value.trim();
             const pw = document.getElementById('login-password').value.trim();
             const errDiv = document.getElementById('login-error');
-            
-            if(!un || !pw) {
+
+            if (!un || !pw) {
                 errDiv.textContent = "請輸入帳號與密碼";
                 errDiv.classList.remove('hidden');
                 return;
@@ -885,16 +885,16 @@
                         data: { username: un, password: pw }
                     })
                 });
-                
+
                 // GAS 若權限錯誤或尚未部署，可能會回傳 302 並導向 HTML，導致 res.json() 失敗
                 let json;
                 try {
                     json = await res.json();
-                } catch(e) {
+                } catch (e) {
                     throw new Error("無法解析伺服器回傳資料，請確認您已將 Apps Script 正確部署為「所有人」皆可存取。");
                 }
 
-                if(json.success) {
+                if (json.success) {
                     currentUser = un;
                     localStorage.setItem('gameSession', un);
                     document.getElementById('modal-login').classList.add('hidden');
@@ -902,7 +902,7 @@
                     errDiv.textContent = json.error || '登入失敗，請檢查帳號密碼';
                     errDiv.classList.remove('hidden');
                 }
-            } catch(e) {
+            } catch (e) {
                 errDiv.textContent = e.message || '網路連線失敗，請檢查 API 網址是否正確。';
                 errDiv.classList.remove('hidden');
                 alert(errDiv.textContent);
