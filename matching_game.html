@@ -108,7 +108,7 @@
         <header class="text-center mb-4 md:mb-6 w-full flex-shrink-0 pop-in pt-4 md:pt-0 relative">
             <div id="user-greeting" class="absolute right-0 top-0 text-sm font-bold text-slate-500 bg-white/80 px-3 py-2 rounded-xl shadow-sm hidden flex-col items-end gap-1 z-50">
                 <div>Hi, <span id="user-greeting-name"></span></div>
-                <button id="btn-logout" class="text-xs text-rose-500 hover:text-rose-600 underline">登出更換玩家</button>
+                <button id="btn-logout" class="text-xs text-slate-400 hover:text-slate-600 underline">登出</button>
             </div>
             <h1
                 class="text-3xl md:text-4xl font-black text-emerald-600 mb-2 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
@@ -547,6 +547,14 @@
         function checkBatchComplete() {
             if (matchedPairs.length === currentBatch.length) {
                 updateProgressText();
+                
+                // 計算成績與傳送紀錄
+                const totalQuestions = currentBatch.length;
+                const failedCount = failedIdiomIds.size;
+                const correctCount = Math.max(0, totalQuestions - failedCount);
+                const score = Math.round((correctCount / totalQuestions) * 100);
+                sendGameRecord(score);
+
                 setTimeout(() => {
                     const modal = document.getElementById('modal-success');
                     const isFullyComplete = ((batchIndex + 1) * BATCH_SIZE) >= currentUnitData.length;
@@ -567,6 +575,29 @@
 
         function updateProgressText() {
             document.getElementById('progress-text').textContent = `${Math.min((batchIndex + 1) * BATCH_SIZE, currentUnitData.length)}/${currentUnitData.length}`;
+        }
+
+        function sendGameRecord(score) {
+            if (!GAS_API_URL || !currentUser) return;
+            const timeSpent = Math.floor((Date.now() - batchStartTime) / 1000);
+            const wrongWords = Array.from(failedIdiomIds);
+            const unitTitle = document.getElementById('current-unit-title').textContent;
+            const unitWithStage = `${unitTitle} (第${batchIndex + 1}關)`;
+
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'saveGameRecord',
+                    data: {
+                        username: currentUser,
+                        game: '成語連連看',
+                        unit: unitWithStage,
+                        score: score,
+                        timeSpent: timeSpent,
+                        wrongAnswers: wrongWords
+                    }
+                })
+            }).catch(e => console.error(e));
         }
 
         async function doLoginAction() {

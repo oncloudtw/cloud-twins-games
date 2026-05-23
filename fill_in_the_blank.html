@@ -92,7 +92,7 @@
                 <header class="text-center mb-6 w-full flex-shrink-0 pop-in pt-4 md:pt-0 relative">
                     <div v-if="currentUser" class="absolute right-4 top-2 text-sm font-bold text-slate-500 bg-white/80 px-3 py-2 rounded-xl shadow-sm flex flex-col items-end gap-1 z-50">
                         <div>Hi, {{ currentUser }}</div>
-                        <button @click="doLogout" class="text-xs text-rose-500 hover:text-rose-600 underline">登出更換玩家</button>
+                        <button @click="doLogout" class="text-xs text-slate-400 hover:text-slate-600 underline">登出</button>
                     </div>
                     <h1
                         class="text-3xl md:text-4xl font-black text-blue-600 mb-2 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
@@ -809,6 +809,7 @@
                     if (!GAS_API_URL || !currentUser.value) return;
                     const timeSpent = Math.floor((Date.now() - batchStartTime.value) / 1000);
                     const wrongWords = Array.from(failedQuestions.value).map(idx => questions.value[idx].word);
+                    const unitWithStage = `${currentUnit.value} (第${currentBatchIndex.value + 1}關)`;
 
                     fetch(GAS_API_URL, {
                         method: 'POST',
@@ -817,7 +818,7 @@
                             data: {
                                 username: currentUser.value,
                                 game: '字音字形填空',
-                                unit: currentUnit.value,
+                                unit: unitWithStage,
                                 score: score,
                                 timeSpent: timeSpent,
                                 wrongAnswers: wrongWords
