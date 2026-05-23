@@ -62,9 +62,48 @@
     </style>
 </head>
 
-<body class="text-slate-800">
+<body class="text-slate-800 relative">
 
-    <div id="app" class="w-full h-full max-w-4xl mx-auto flex flex-col relative md:py-4">
+    <!-- =================== 登入蓋板 (Login Modal) =================== -->
+    <div id="modal-login" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-[100] flex flex-col justify-center items-center p-6 text-center">
+        <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mx-auto mb-4 text-3xl">
+                <i class="ph-bold ph-user-circle"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-800 mb-2">玩家登入</h2>
+            <p class="text-slate-500 mb-6 text-sm">請輸入您的帳號與密碼，系統會自動為您建立紀錄。</p>
+
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">帳號</label>
+                    <input id="login-username" type="text"
+                        class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                        placeholder="例如：暱稱">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">密碼</label>
+                    <input id="login-password" type="password"
+                        class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                        placeholder="例如：預設密碼">
+                </div>
+
+                <div id="login-error" class="text-red-500 text-sm font-bold text-center mt-2 hidden"></div>
+
+                <button id="btn-login"
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-4">
+                    <span>登入開始挑戰</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =================== 全域招呼語 =================== -->
+    <div id="user-greeting" class="absolute right-4 top-4 text-sm font-bold text-slate-500 bg-white/80 px-3 py-2 rounded-xl shadow-sm hidden flex-col items-end gap-1 z-50">
+        <div>Hi, <span id="user-greeting-name"></span></div>
+        <button id="btn-logout" class="text-xs text-slate-400 hover:text-slate-600 underline">登出</button>
+    </div>
+
+    <div id="app" class="w-full h-full max-w-4xl mx-auto flex flex-col relative md:py-4 pt-16 md:pt-4">
 
         <!-- =================== 畫面一：主選單 =================== -->
         <div v-if="gameState === 'menu'" class="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col items-center">
@@ -261,10 +300,12 @@
 
         // 這裡是您的試算表 ID
         const SHEET_ID = '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo';
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzEx9q1G45YmJqwuo4GMa77zzfHsaxrcq03woKK8HgQj6xhm9duqFB26cjlW0hdOFN_cw/exec';
 
         createApp({
             setup() {
                 const gameState = ref('menu'); // 'menu' 或 'playing'
+                const batchStartTime = ref(0);
                 const availableUnits = ref([]); 
                 const currentUnit = ref('');
                 const batchSize = ref(10); // 每階段題數
@@ -325,6 +366,7 @@
                     if (!currentUnit.value) return;
                     loadUnitData();
                     gameState.value = 'playing';
+                    batchStartTime.value = Date.now();
                     nextTick(() => {
                         resetInputFocus();
                     });
@@ -332,6 +374,7 @@
                 
                 const resumeGame = () => {
                     gameState.value = 'playing';
+                    batchStartTime.value = Date.now();
                     nextTick(() => {
                         resetInputFocus();
                     });
@@ -365,6 +408,7 @@
                     stageCorrectCount.value = 0;
                     failedQuestions.value = new Set();
                     resetInput();
+                    batchStartTime.value = Date.now();
                     gameState.value = 'menu';
                 };
 
@@ -574,6 +618,30 @@
                     resetInput();
                 };
 
+                const sendGameRecord = () => {
+                    if (!GAS_API_URL || !window.currentUser) return;
+                    const timeSpent = Math.floor((Date.now() - batchStartTime.value) / 1000);
+                    const wrongWords = Array.from(failedQuestions.value).map(idx => currentBatchQuestions.value[idx].word);
+                    const unitWithStage = `${currentUnit.value} (第${currentBatchIndex.value + 1}/${totalBatches.value}關)`;
+                    const totalBatchQuestions = currentBatchQuestions.value.length;
+                    const score = Math.round((stageCorrectCount.value / totalBatchQuestions) * 100);
+
+                    fetch(GAS_API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'saveGameRecord',
+                            data: {
+                                username: window.currentUser,
+                                game: '字音字形填空',
+                                unit: unitWithStage,
+                                score: score,
+                                timeSpent: timeSpent,
+                                wrongAnswers: wrongWords
+                            }
+                        })
+                    }).catch(e => console.error(e));
+                };
+
                 const checkAnswer = () => {
                     if (!userAnswer.value.trim()) return;
 
@@ -615,6 +683,8 @@
                         // 檢查是否還有下一批
                         const hasNextStage = (currentBatchIndex.value + 1) * batchSize.value < questions.value.length;
                         
+                        sendGameRecord();
+
                         if (hasNextStage) {
                             showStageModal.value = true;
                         } else {
@@ -630,6 +700,7 @@
                     stageCorrectCount.value = 0;
                     failedQuestions.value = new Set();
                     resetInput();
+                    batchStartTime.value = Date.now();
                 };
 
                 const prevQuestion = () => {
@@ -689,13 +760,128 @@
                     resetInputFocus,
                     canResume,
                     resumeGame,
-                    restNow,
+                        restNow,
                     totalBatches
                 };
             }
         }).mount('#app');
-    </script>
 
+        // =================== 全域 Vanilla JS 登入邏輯 ===================
+        window.currentUser = null;
+
+        async function doLoginAction() {
+            const btn = document.getElementById('btn-login');
+            const un = document.getElementById('login-username').value.trim();
+            const pw = document.getElementById('login-password').value.trim();
+            const errDiv = document.getElementById('login-error');
+
+            if (!un || !pw) {
+                errDiv.textContent = "請輸入帳號與密碼";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> <span>登入中...請稍候</span>';
+            btn.disabled = true;
+
+            if (!GAS_API_URL) {
+                // 若未設定 API URL，假登入直接放行
+                window.currentUser = un;
+                localStorage.setItem('gameSession', un);
+                document.getElementById('modal-login').classList.add('hidden');
+                
+                const greeting = document.getElementById('user-greeting');
+                const greetingName = document.getElementById('user-greeting-name');
+                if (greeting && greetingName) {
+                    greetingName.textContent = window.currentUser;
+                    greeting.classList.remove('hidden');
+                    greeting.classList.add('flex');
+                }
+                
+                btn.innerHTML = '<span>登入開始挑戰</span>';
+                btn.disabled = false;
+                return;
+            }
+
+            try {
+                const res = await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'login',
+                        data: { username: un, password: pw }
+                    })
+                });
+
+                let json;
+                try {
+                    json = await res.json();
+                } catch (e) {
+                    throw new Error("無法解析伺服器回傳資料，請確認您已將 Apps Script 正確部署為「所有人」皆可存取。");
+                }
+
+                if (json.success) {
+                    window.currentUser = un;
+                    localStorage.setItem('gameSession', un);
+                    document.getElementById('modal-login').classList.add('hidden');
+                    
+                    const greeting = document.getElementById('user-greeting');
+                    const greetingName = document.getElementById('user-greeting-name');
+                    if (greeting && greetingName) {
+                        greetingName.textContent = window.currentUser;
+                        greeting.classList.remove('hidden');
+                        greeting.classList.add('flex');
+                    }
+                } else {
+                    errDiv.textContent = json.error || '登入失敗，請檢查帳號密碼';
+                    errDiv.classList.remove('hidden');
+                }
+            } catch (e) {
+                errDiv.textContent = e.message || '網路連線失敗，請檢查 API 網址是否正確。';
+                errDiv.classList.remove('hidden');
+                alert(errDiv.textContent);
+            } finally {
+                btn.innerHTML = '<span>登入開始挑戰</span>';
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('btn-login').addEventListener('click', doLoginAction);
+
+        document.getElementById('login-username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') doLoginAction();
+        });
+        document.getElementById('login-password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') doLoginAction();
+        });
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            localStorage.removeItem('gameSession');
+            window.currentUser = null;
+            document.getElementById('user-greeting').classList.add('hidden');
+            document.getElementById('user-greeting').classList.remove('flex');
+            document.getElementById('modal-login').classList.remove('hidden');
+            // 如果玩家在玩到一半登出，強制刷新頁面最乾脆，避免 Vue 狀態殘留
+            window.location.reload();
+        });
+
+        // 檢查自動登入
+        window.onload = () => {
+            const savedSession = localStorage.getItem('gameSession');
+            if (savedSession) {
+                window.currentUser = savedSession;
+                document.getElementById('modal-login').classList.add('hidden');
+                
+                const greeting = document.getElementById('user-greeting');
+                const greetingName = document.getElementById('user-greeting-name');
+                if (greeting && greetingName) {
+                    greetingName.textContent = window.currentUser;
+                    greeting.classList.remove('hidden');
+                    greeting.classList.add('flex');
+                }
+            }
+        };
+
+    </script>
 </body>
 
 </html>
