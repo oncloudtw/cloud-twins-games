@@ -89,13 +89,9 @@
         <div v-if="gameState === 'menu'" class="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col items-center">
 
             <div class="w-full max-w-md mt-auto mb-auto flex flex-col items-center py-4">
-                <header class="text-center mb-6 w-full flex-shrink-0 pop-in pt-4 md:pt-0 relative">
-                    <div v-if="currentUser" class="absolute right-4 top-2 text-sm font-bold text-slate-500 bg-white/80 px-3 py-2 rounded-xl shadow-sm flex flex-col items-end gap-1 z-50">
-                        <div>Hi, {{ currentUser }}</div>
-                        <button @click="doLogout" class="text-xs text-slate-400 hover:text-slate-600 underline">登出</button>
-                    </div>
+                <header class="text-center mb-6 w-full pop-in">
                     <h1
-                        class="text-3xl md:text-4xl font-black text-blue-600 mb-2 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
+                        class="text-3xl md:text-4xl font-black text-blue-600 mb-3 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
                         <i class="ph-fill ph-pencil-simple"></i> 字音字形填空
                     </h1>
                     <p class="text-blue-700/80 font-medium text-sm md:text-base">看懂解釋，填入正確的國字或注音！</p>
@@ -111,7 +107,7 @@
                             <select v-model="currentUnit"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700">
                                 <option v-if="loading" disabled selected>正在掃描題庫中...</option>
-                                <option v-for="unitObj in availableUnits" :key="unitObj.name" :value="unitObj.name">
+                                <option v-else v-for="unitObj in availableUnits" :value="unitObj.name">
                                     {{ unitObj.name }} (共 {{ unitObj.count }} 題)
                                 </option>
                             </select>
@@ -152,41 +148,41 @@
                 <p class="mt-6 text-sm text-slate-500 text-center">{{ feedbackMessage || '系統會自動掃描試算表中所有工作表的「單元」欄位。' }}
                 </p>
             </div>
+        </div>
 
-            <!-- =================== 登入蓋板 (Login Modal) =================== -->
-            <div v-if="showLoginModal"
-                class="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex flex-col justify-center items-center p-6 text-center">
-                <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
-                    <div
-                        class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mx-auto mb-4 text-3xl">
-                        <i class="ph-bold ph-user-circle"></i>
+        <!-- =================== 登入蓋板 (Login Modal) =================== -->
+        <div v-if="showLoginModal"
+            class="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex flex-col justify-center items-center p-6 text-center">
+            <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
+                <div
+                    class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mx-auto mb-4 text-3xl">
+                    <i class="ph-bold ph-user-circle"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">學生登入</h2>
+                <p class="text-slate-500 mb-6 text-sm">請輸入您的帳號與密碼，系統會自動為您建立紀錄。</p>
+
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">帳號</label>
+                        <input v-model="loginForm.username" type="text"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            placeholder="例如：學號">
                     </div>
-                    <h2 class="text-2xl font-bold text-slate-800 mb-2">玩家登入</h2>
-                    <p class="text-slate-500 mb-6 text-sm">請輸入您的帳號與密碼，系統會自動為您建立紀錄。</p>
-
-                    <div class="space-y-4 text-left">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">帳號</label>
-                            <input v-model="loginForm.username" type="text" @keyup.enter="doLogin"
-                                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                                placeholder="例如：暱稱">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">密碼</label>
-                            <input v-model="loginForm.password" type="password" @keyup.enter="doLogin"
-                                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                                placeholder="例如：預設密碼">
-                        </div>
-
-                        <div v-if="loginError" class="text-red-500 text-sm font-bold text-center mt-2">{{ loginError }}
-                        </div>
-
-                        <button @click="doLogin" :disabled="loggingIn"
-                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <i v-if="loggingIn" class="ph-bold ph-spinner animate-spin"></i>
-                            <span>{{ loggingIn ? '登入中...' : '登入開始挑戰' }}</span>
-                        </button>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">密碼</label>
+                        <input v-model="loginForm.password" type="password"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            placeholder="例如：預設密碼" @keyup.enter="doLogin">
                     </div>
+
+                    <div v-if="loginError" class="text-red-500 text-sm font-bold text-center mt-2">{{ loginError }}
+                    </div>
+
+                    <button @click="doLogin" :disabled="loggingIn"
+                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-4">
+                        <i v-if="loggingIn" class="ph-bold ph-spinner animate-spin"></i>
+                        <span>登入開始挑戰</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -351,6 +347,7 @@
 
     </div>
 
+    <!-- 保持原本的腳本 -->
     <script>
         const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
@@ -361,87 +358,13 @@
         createApp({
             setup() {
                 const gameState = ref('menu'); // 'menu' 或 'playing'
-
                 const currentUser = ref(null);
-                const showLoginModal = ref(true);
+                const showLoginModal = ref(false);
                 const loginForm = ref({ username: '', password: '' });
                 const loginError = ref('');
                 const loggingIn = ref(false);
+
                 const batchStartTime = ref(0);
-
-                // 啟動應用時，先掃描單元與檢查登入
-                onMounted(() => {
-                    const savedUser = localStorage.getItem('gameSession');
-                    if (savedUser) {
-                        currentUser.value = savedUser;
-                        showLoginModal.value = false;
-                    }
-                    fetchAndScanData();
-                });
-
-                // ==========================
-                // 登入邏輯
-                // ==========================
-                const doLogin = async () => {
-                    if (!loginForm.value.username || !loginForm.value.password) {
-                        loginError.value = "請輸入帳號與密碼";
-                        return;
-                    }
-
-                    loggingIn.value = true;
-                    loginError.value = "";
-
-                    if (!GAS_API_URL) {
-                        // 假登入
-                        currentUser.value = loginForm.value.username;
-                        localStorage.setItem('gameSession', loginForm.value.username);
-                        showLoginModal.value = false;
-                        loggingIn.value = false;
-                        return;
-                    }
-
-                    try {
-                        const res = await fetch(GAS_API_URL, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                action: 'login',
-                                data: {
-                                    username: loginForm.value.username,
-                                    password: loginForm.value.password
-                                }
-                            })
-                        });
-
-                        let json;
-                        try {
-                            json = await res.json();
-                        } catch (e) {
-                            throw new Error("無法解析伺服器回傳資料，請確認您已將 Apps Script 正確部署為「所有人」皆可存取。");
-                        }
-
-                        if (json.success) {
-                            currentUser.value = loginForm.value.username;
-                            localStorage.setItem('gameSession', loginForm.value.username);
-                            showLoginModal.value = false;
-                        } else {
-                            loginError.value = json.error || "登入失敗，請檢查帳號密碼";
-                        }
-                    } catch (e) {
-                        loginError.value = e.message || '網路連線失敗，請檢查 API 網址是否正確。';
-                        alert(loginError.value);
-                    } finally {
-                        loggingIn.value = false;
-                    }
-                };
-
-                const doLogout = () => {
-                    localStorage.removeItem('gameSession');
-                    currentUser.value = null;
-                    showLoginModal.value = true;
-                    if(gameState.value === 'playing') {
-                        doBackToMenu();
-                    }
-                };
 
                 const availableUnits = ref([]);
                 const currentUnit = ref('');
@@ -498,11 +421,6 @@
 
                 const startGame = () => {
                     if (!currentUnit.value) return;
-                    if (!currentUser.value && GAS_API_URL) {
-                        showLoginModal.value = true;
-                        return;
-                    }
-                    currentBatchIndex.value = 0;
                     loadUnitData();
                     gameState.value = 'playing';
                     batchStartTime.value = Date.now();
@@ -512,10 +430,6 @@
                 };
 
                 const resumeGame = () => {
-                    if (!currentUser.value && GAS_API_URL) {
-                        showLoginModal.value = true;
-                        return;
-                    }
                     gameState.value = 'playing';
                     batchStartTime.value = Date.now();
                     nextTick(() => {
@@ -796,35 +710,16 @@
                         resetInput();
                     } else {
                         inputStatus.value = 'correct';
+
+                        // 檢查是否還有下一批
                         const hasNextStage = (currentBatchIndex.value + 1) * batchSize.value < questions.value.length;
+
                         if (hasNextStage) {
                             showStageModal.value = true;
                         } else {
                             showSuccessModal.value = true;
                         }
                     }
-                };
-
-                const sendGameRecord = (score) => {
-                    if (!GAS_API_URL || !currentUser.value) return;
-                    const timeSpent = Math.floor((Date.now() - batchStartTime.value) / 1000);
-                    const wrongWords = Array.from(failedQuestions.value).map(idx => questions.value[idx].word);
-                    const unitWithStage = `${currentUnit.value} (第${currentBatchIndex.value + 1}/${totalBatches.value}關)`;
-
-                    fetch(GAS_API_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'saveGameRecord',
-                            data: {
-                                username: currentUser.value,
-                                game: '字音字形填空',
-                                unit: unitWithStage,
-                                score: score,
-                                timeSpent: timeSpent,
-                                wrongAnswers: wrongWords
-                            }
-                        })
-                    }).catch(e => console.error(e));
                 };
 
                 const nextStage = () => {
@@ -834,7 +729,6 @@
                     stageCorrectCount.value = 0;
                     failedQuestions.value = new Set();
                     resetInput();
-                    batchStartTime.value = Date.now();
                 };
 
                 const prevQuestion = () => {
@@ -860,6 +754,10 @@
                     });
                 };
 
+                onMounted(() => {
+                    fetchAndScanData();
+                });
+
                 return {
                     gameState,
                     startGame,
@@ -868,16 +766,6 @@
                     availableUnits,
                     currentUnit,
                     batchSize,
-
-                    showLoginModal,
-                    loginForm,
-                    loginError,
-                    loggingIn,
-                    currentUser,
-                    doLogin,
-                    doLogout,
-                    logDictClick,
-
                     currentBatchIndex,
                     currentBatchQuestions,
                     questions,
