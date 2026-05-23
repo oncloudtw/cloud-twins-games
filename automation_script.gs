@@ -134,7 +134,8 @@ function handleLogin(data) {
   }
   
   // 帳號不存在，自動註冊為學生
-  sheet.appendRow([username, password, 'student', new Date().toISOString()]);
+  const twTime = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss");
+  sheet.appendRow([username, password, 'student', twTime]);
   return { success: true, role: 'student', message: '已為您自動建立新帳號' };
 }
 
@@ -146,8 +147,9 @@ function handleSaveGameRecord(data) {
   
   const wrongAnswersStr = Array.isArray(data.wrongAnswers) ? data.wrongAnswers.join(',') : (data.wrongAnswers || '');
   
+  const twTime = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss");
   sheet.appendRow([
-    new Date().toISOString(),
+    twTime,
     data.username,
     data.game || '',
     data.unit || '',
@@ -165,8 +167,9 @@ function handleLogDictClick(data) {
   const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
   const sheet = ss.getSheetByName('DictClicks');
   
+  const twTime = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss");
   sheet.appendRow([
-    new Date().toISOString(),
+    twTime,
     data.username,
     data.game || '',
     data.word || '',
