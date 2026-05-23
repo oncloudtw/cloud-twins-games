@@ -301,7 +301,12 @@
                                 }
                             })
                         });
-                        const res = await response.json();
+                        let res;
+                        try {
+                            res = await response.json();
+                        } catch(e) {
+                            throw new Error('無法解析伺服器回傳資料，請確認您已將 Apps Script 存取權限設為「所有人 (Anyone)」。');
+                        }
 
                         if (res.success && res.role === 'admin') {
                             isLoggedIn.value = true;
@@ -314,7 +319,11 @@
                             loginError.value = res.error || '無管理員權限或密碼錯誤';
                         }
                     } catch (e) {
-                        loginError.value = '連線失敗，請檢查 API 網址是否正確。' + e.message;
+                        if (e.message.includes('NetworkError') || e.message.includes('Failed to fetch')) {
+                            loginError.value = '跨網域連線被拒絕 (CORS Error)。這通常是因為 Google Apps Script 的「誰可以存取」未設定為「所有人 (Anyone)」，或是網址錯誤。請重新部署！';
+                        } else {
+                            loginError.value = '連線失敗：' + e.message;
+                        }
                     } finally {
                         loading.value = false;
                     }
@@ -340,7 +349,13 @@
                                 }
                             })
                         });
-                        const res = await response.json();
+                        let res;
+                        try {
+                            res = await response.json();
+                        } catch(e) {
+                            throw new Error('無法解析伺服器回傳資料，請確認存取權限。');
+                        }
+                        
                         if (res.success) {
                             dashboardData.value.users = res.users || [];
                             dashboardData.value.records = res.records || [];
@@ -349,7 +364,11 @@
                             apiError.value = res.error || '獲取資料失敗';
                         }
                     } catch (e) {
-                        apiError.value = '連線失敗：' + e.message;
+                        if (e.message.includes('NetworkError') || e.message.includes('Failed to fetch')) {
+                            apiError.value = '跨網域連線被拒絕 (CORS Error)。這通常是因為 Google Apps Script 的「誰可以存取」未設定為「所有人 (Anyone)」，導致被 Google 登入頁面阻擋。';
+                        } else {
+                            apiError.value = '連線失敗：' + e.message;
+                        }
                     } finally {
                         loadingData.value = false;
                     }
