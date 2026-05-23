@@ -89,9 +89,12 @@
         <div v-if="gameState === 'menu'" class="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col items-center">
 
             <div class="w-full max-w-md mt-auto mb-auto flex flex-col items-center py-4">
-                <header class="text-center mb-6 w-full pop-in">
+                <header class="text-center mb-6 w-full flex-shrink-0 pop-in pt-4 md:pt-0 relative">
+                    <div v-if="currentUser" class="absolute right-4 top-2 text-sm font-bold text-slate-500 bg-white/80 px-3 py-1 rounded-full shadow-sm">
+                        Hi, {{ currentUser }}
+                    </div>
                     <h1
-                        class="text-3xl md:text-4xl font-black text-blue-600 mb-3 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
+                        class="text-3xl md:text-4xl font-black text-blue-600 mb-2 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
                         <i class="ph-fill ph-pencil-simple"></i> 字音字形填空
                     </h1>
                     <p class="text-blue-700/80 font-medium text-sm md:text-base">看懂解釋，填入正確的國字或注音！</p>
@@ -148,29 +151,37 @@
                 <p class="mt-6 text-sm text-slate-500 text-center">{{ feedbackMessage || '系統會自動掃描試算表中所有工作表的「單元」欄位。' }}
                 </p>
             </div>
-            
+
             <!-- =================== 登入蓋板 (Login Modal) =================== -->
-            <div v-if="showLoginModal" class="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex flex-col justify-center items-center p-6 text-center">
+            <div v-if="showLoginModal"
+                class="absolute inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex flex-col justify-center items-center p-6 text-center">
                 <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
-                    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mx-auto mb-4 text-3xl">
+                    <div
+                        class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mx-auto mb-4 text-3xl">
                         <i class="ph-bold ph-user-circle"></i>
                     </div>
-                    <h2 class="text-2xl font-bold text-slate-800 mb-2">學生登入</h2>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2">玩家登入</h2>
                     <p class="text-slate-500 mb-6 text-sm">請輸入您的帳號與密碼，系統會自動為您建立紀錄。</p>
 
                     <div class="space-y-4 text-left">
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">帳號</label>
-                            <input v-model="loginForm.username" type="text" @keyup.enter="doLogin" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="例如：學號">
+                            <input v-model="loginForm.username" type="text" @keyup.enter="doLogin"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                placeholder="例如：暱稱">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-slate-700 mb-1">密碼</label>
-                            <input v-model="loginForm.password" type="password" @keyup.enter="doLogin" class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200" placeholder="例如：預設密碼">
+                            <input v-model="loginForm.password" type="password" @keyup.enter="doLogin"
+                                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                                placeholder="例如：預設密碼">
                         </div>
-                        
-                        <div v-if="loginError" class="text-red-500 text-sm font-bold text-center mt-2">{{ loginError }}</div>
 
-                        <button @click="doLogin" :disabled="loggingIn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <div v-if="loginError" class="text-red-500 text-sm font-bold text-center mt-2">{{ loginError }}
+                        </div>
+
+                        <button @click="doLogin" :disabled="loggingIn"
+                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed">
                             <i v-if="loggingIn" class="ph-bold ph-spinner animate-spin"></i>
                             <span>{{ loggingIn ? '登入中...' : '登入開始挑戰' }}</span>
                         </button>
@@ -344,12 +355,12 @@
 
         // 這裡是您的試算表 ID
         const SHEET_ID = '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo';
-        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzEx9q1G45YmJqwuo4GMa77zzfHsaxrcq03woKK8HgQj6xhm9duqFB26cjlW0hdOFN_cw/exec'; 
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzEx9q1G45YmJqwuo4GMa77zzfHsaxrcq03woKK8HgQj6xhm9duqFB26cjlW0hdOFN_cw/exec'; // 老師：請將您部署的 Google Apps Script Web App 網址貼在這裡。若留空，則不啟用後端紀錄。
 
         createApp({
             setup() {
                 const gameState = ref('menu'); // 'menu' 或 'playing'
-                
+
                 const currentUser = ref(null);
                 const showLoginModal = ref(true);
                 const loginForm = ref({ username: '', password: '' });
@@ -399,11 +410,11 @@
                                 }
                             })
                         });
-                        
+
                         let json;
                         try {
                             json = await res.json();
-                        } catch(e) {
+                        } catch (e) {
                             throw new Error("無法解析伺服器回傳資料，請確認您已將 Apps Script 正確部署為「所有人」皆可存取。");
                         }
 
@@ -788,7 +799,7 @@
                     if (!GAS_API_URL || !currentUser.value) return;
                     const timeSpent = Math.floor((Date.now() - batchStartTime.value) / 1000);
                     const wrongWords = Array.from(failedQuestions.value).map(idx => questions.value[idx].word);
-                    
+
                     fetch(GAS_API_URL, {
                         method: 'POST',
                         body: JSON.stringify({
@@ -846,7 +857,7 @@
                     availableUnits,
                     currentUnit,
                     batchSize,
-                    
+
                     showLoginModal,
                     loginForm,
                     loginError,
