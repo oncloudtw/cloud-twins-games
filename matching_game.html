@@ -108,7 +108,7 @@
         <header class="text-center mb-4 md:mb-6 w-full flex-shrink-0 pop-in pt-4 md:pt-0 relative">
             <div id="user-greeting" class="absolute right-0 top-0 text-sm font-bold text-slate-500 bg-white/80 px-3 py-2 rounded-xl shadow-sm hidden flex-col items-end gap-1 z-50">
                 <div>Hi, <span id="user-greeting-name"></span></div>
-                <button id="btn-logout" class="text-xs text-slate-400 hover:text-slate-600 underline">登出</button>
+                <button id="btn-logout" class="text-xs text-slate-400 hover:text-slate-600 underline">返回大廳</button>
             </div>
             <h1
                 class="text-3xl md:text-4xl font-black text-emerald-600 mb-2 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
@@ -150,39 +150,7 @@
                 </p>
             </div>
 
-            <!-- =================== 登入蓋板 (Login Modal) =================== -->
-            <div id="modal-login" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex flex-col justify-center items-center p-6 text-center">
-                <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
-                    <div
-                        class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mx-auto mb-4 text-3xl">
-                        <i class="ph-bold ph-user-circle"></i>
-                    </div>
-                    <h2 class="text-2xl font-bold text-slate-800 mb-2">玩家登入</h2>
-                    <p class="text-slate-500 mb-6 text-sm">請輸入您的帳號與密碼，系統會自動為您建立紀錄。</p>
 
-                    <div class="space-y-4 text-left">
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">帳號</label>
-                            <input id="login-username" type="text"
-                                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                                placeholder="例如：暱稱">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-slate-700 mb-1">密碼</label>
-                            <input id="login-password" type="password"
-                                class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-                                placeholder="例如：預設密碼">
-                        </div>
-
-                        <div id="login-error" class="text-red-500 text-sm font-bold text-center mt-2 hidden"></div>
-
-                        <button id="btn-login"
-                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-4">
-                            <span>登入開始挑戰</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             <!-- =================== 畫面二：遊戲區 =================== -->
             <div id="screen-game" class="hidden flex-1 flex flex-col relative overflow-hidden">
@@ -243,7 +211,7 @@
                         </button>
                         <button id="btn-finish-unit"
                             class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
-                            回主選單 <i class="ph-bold ph-house"></i>
+                            回單元選單 <i class="ph-bold ph-list"></i>
                         </button>
                     </div>
                 </div>
@@ -614,27 +582,14 @@
             }).catch(e => console.error(e));
         }
 
-        async function doLoginAction() {
-            const btn = document.getElementById('btn-login');
-            const un = document.getElementById('login-username').value.trim();
-            const pw = document.getElementById('login-password').value.trim();
-            const errDiv = document.getElementById('login-error');
+        // 遊戲啟動與重設邏輯
+        let currentUser = null;
 
-            if (!un || !pw) {
-                errDiv.textContent = "請輸入帳號與密碼";
-                errDiv.classList.remove('hidden');
-                return;
-            }
-
-            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> <span>登入中...請稍候</span>';
-            btn.disabled = true;
-
-            if (!GAS_API_URL) {
-                // 若未設定 API URL，假登入直接放行
-                currentUser = un;
-                localStorage.setItem('gameSession', un);
-                document.getElementById('modal-login').classList.add('hidden');
-                
+        // =================== 登入與返回大廳邏輯 ===================
+        window.onload = () => {
+            const savedSession = localStorage.getItem('gameSession');
+            if (savedSession) {
+                currentUser = savedSession;
                 // 更新畫面的 Hi 某某
                 const greeting = document.getElementById('user-greeting');
                 const greetingName = document.getElementById('user-greeting-name');
@@ -643,74 +598,15 @@
                     greeting.classList.remove('hidden');
                     greeting.classList.add('flex');
                 }
-                
-                btn.innerHTML = '<span>登入開始挑戰</span>';
-                btn.disabled = false;
-                return;
+            } else {
+                // 未登入，強制跳轉回首頁
+                window.location.href = 'index.html';
             }
-
-            try {
-                const res = await fetch(GAS_API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'login',
-                        data: { username: un, password: pw }
-                    })
-                });
-
-                // GAS 若權限錯誤或尚未部署，可能會回傳 302 並導向 HTML，導致 res.json() 失敗
-                let json;
-                try {
-                    json = await res.json();
-                } catch (e) {
-                    throw new Error("無法解析伺服器回傳資料，請確認您已將 Apps Script 正確部署為「所有人」皆可存取。");
-                }
-
-                if (json.success) {
-                    currentUser = un;
-                    localStorage.setItem('gameSession', un);
-                    document.getElementById('modal-login').classList.add('hidden');
-                    
-                    // 更新畫面的 Hi 某某
-                    const greeting = document.getElementById('user-greeting');
-                    const greetingName = document.getElementById('user-greeting-name');
-                    if(greeting && greetingName) {
-                        greetingName.textContent = currentUser;
-                        greeting.classList.remove('hidden');
-                        greeting.classList.add('flex');
-                    }
-                } else {
-                    errDiv.textContent = json.error || '登入失敗，請檢查帳號密碼';
-                    errDiv.classList.remove('hidden');
-                }
-            } catch (e) {
-                errDiv.textContent = e.message || '網路連線失敗，請檢查 API 網址是否正確。';
-                errDiv.classList.remove('hidden');
-                alert(errDiv.textContent);
-            } finally {
-                btn.innerHTML = '<span>登入開始挑戰</span>';
-                btn.disabled = false;
-            }
-        }
-
-        document.getElementById('btn-login').addEventListener('click', doLoginAction);
-
-        // 新增 Enter 鍵觸發登入
-        document.getElementById('login-username').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') doLoginAction();
-        });
-        document.getElementById('login-password').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') doLoginAction();
-        });
+        };
 
         // 按鈕綁定 (原本被刪除的)
         document.getElementById('btn-logout').addEventListener('click', () => {
-            localStorage.removeItem('gameSession');
-            currentUser = null;
-            document.getElementById('user-greeting').classList.add('hidden');
-            document.getElementById('user-greeting').classList.remove('flex');
-            document.getElementById('modal-login').classList.remove('hidden');
-            returnToMenu();
+            window.location.href = 'index.html';
         });
 
         document.getElementById('btn-next-batch').addEventListener('click', () => {
