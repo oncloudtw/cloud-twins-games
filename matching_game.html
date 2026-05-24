@@ -137,6 +137,17 @@
                             </select>
                         </div>
 
+                        <!-- 按鈕群 -->
+                        <div id="start-buttons" class="hidden gap-4">
+                            <button id="btn-resume" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-xl text-lg md:text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2">
+                                <i class="ph-bold ph-play"></i>
+                                <span id="resume-text">繼續第 X 關</span>
+                            </button>
+                            <button id="btn-restart" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-4 rounded-xl text-sm md:text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2">
+                                <i class="ph-bold ph-arrow-counter-clockwise"></i>
+                                <span>重新開始</span>
+                            </button>
+                        </div>
                         <button id="btn-start" disabled
                             class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 opacity-50 cursor-not-allowed">
                             <i class="ph-bold ph-spinner animate-spin" id="start-icon"></i> <span
@@ -205,9 +216,13 @@
                         class="text-xl text-emerald-800 font-bold mb-6 hidden bg-emerald-100 py-2 px-6 rounded-full border-2 border-emerald-300">
                     </div>
                     <div class="flex gap-4">
+                        <button id="btn-rest"
+                            class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 md:px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                            先休息 <i class="ph-bold ph-house"></i>
+                        </button>
                         <button id="btn-next-batch"
-                            class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
-                            下一批成語 <i class="ph-bold ph-arrow-right"></i>
+                            class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 md:px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                            下一關 <i class="ph-bold ph-arrow-right"></i>
                         </button>
                         <button id="btn-finish-unit"
                             class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
@@ -383,11 +398,41 @@
                 select.appendChild(option);
             });
 
-            btnStart.disabled = false;
-            btnStart.classList.remove('opacity-50', 'cursor-not-allowed');
-            startIcon.className = "ph-bold ph-play";
-            startText.textContent = "開始遊戲";
+            select.addEventListener('change', updateStartButtons);
+            updateStartButtons();
         }
+
+        function updateStartButtons() {
+            const unit = document.getElementById('unit-select').value;
+            const btnStart = document.getElementById('btn-start');
+            const startButtons = document.getElementById('start-buttons');
+            const resumeText = document.getElementById('resume-text');
+            const startIcon = document.getElementById('start-icon');
+            const startText = document.getElementById('start-text');
+
+            if (!unit) return;
+
+            const isSameUnit = currentUnitData.length > 0 && currentUnitData[0].unit === unit;
+            const canResume = isSameUnit && (batchIndex * BATCH_SIZE < currentUnitData.length) && batchIndex > 0;
+
+            if (canResume) {
+                btnStart.classList.add('hidden');
+                startButtons.classList.remove('hidden');
+                startButtons.classList.add('flex');
+                resumeText.textContent = `繼續第 ${batchIndex + 1} 關`;
+            } else {
+                startButtons.classList.add('hidden');
+                startButtons.classList.remove('flex');
+                btnStart.classList.remove('hidden');
+                
+                btnStart.disabled = false;
+                btnStart.classList.remove('opacity-50', 'cursor-not-allowed');
+                startIcon.className = "ph-bold ph-play";
+                startText.textContent = "開始遊戲";
+            }
+        }
+
+
 
         function shuffleArray(array) {
             const arr = [...array];
@@ -398,18 +443,27 @@
             return arr;
         }
 
-        document.getElementById('btn-start').addEventListener('click', () => {
+        function startGameAction(isReset) {
             const unit = document.getElementById('unit-select').value;
             if (!unit) return;
-            currentUnitData = shuffleArray(allIdiomsData.filter(item => item.unit === unit));
-            batchIndex = 0;
-            failedIdiomIds.clear();
-            unitFailedIdiomIds.clear();
+
+            if (isReset) {
+                currentUnitData = shuffleArray(allIdiomsData.filter(item => item.unit === unit));
+                batchIndex = 0;
+                failedIdiomIds.clear();
+                unitFailedIdiomIds.clear();
+            }
+
             document.getElementById('current-unit-title').textContent = unit;
             document.getElementById('screen-menu').classList.add('hidden');
             document.getElementById('screen-game').classList.remove('hidden');
+            
             renderBatch();
-        });
+        }
+
+        document.getElementById('btn-start').addEventListener('click', () => startGameAction(true));
+        document.getElementById('btn-restart').addEventListener('click', () => startGameAction(true));
+        document.getElementById('btn-resume').addEventListener('click', () => startGameAction(false));
 
         function renderBatch() {
             const colIdioms = document.getElementById('col-idioms');
@@ -528,13 +582,15 @@
                         const totalUnitQuestions = currentUnitData.length;
                         const finalCorrect = Math.max(0, totalUnitQuestions - unitFailedIdiomIds.size);
                         const finalScore = Math.round((finalCorrect / totalUnitQuestions) * 100);
-                        document.getElementById('score-text').innerHTML = `本關得分: ${batchScore} 分<br><br><span class="text-2xl text-blue-700">單元總答對率: ${finalScore}%</span><br><span class="text-sm text-slate-500 font-medium">共 ${totalUnitQuestions} 題，一次答對 ${finalCorrect} 題</span>`;
+                        document.getElementById('score-text').innerHTML = `本關得分: ${batchScore} 分<br><br><span class="text-2xl text-emerald-700">單元總答對率: ${finalScore}%</span><br><span class="text-sm text-slate-500 font-medium">共 ${totalUnitQuestions} 題，一次答對 ${finalCorrect} 題</span>`;
                         document.getElementById('score-text').classList.remove('hidden');
+                        document.getElementById('btn-rest').classList.add('hidden');
                         document.getElementById('btn-next-batch').classList.add('hidden');
                         document.getElementById('btn-finish-unit').classList.remove('hidden');
                     } else {
                         document.getElementById('score-text').textContent = `本關得分: ${batchScore} 分`;
                         document.getElementById('score-text').classList.remove('hidden');
+                        document.getElementById('btn-rest').classList.remove('hidden');
                         document.getElementById('btn-next-batch').classList.remove('hidden');
                         document.getElementById('btn-finish-unit').classList.add('hidden');
                     }
@@ -595,17 +651,34 @@
             window.location.href = 'index.html';
         });
 
-        document.getElementById('btn-next-batch').addEventListener('click', () => {
-            batchIndex++;
-            renderBatch();
-        });
-        document.getElementById('btn-finish-unit').addEventListener('click', () => {
-            returnToMenu();
-        });
         document.getElementById('btn-back').addEventListener('click', () => {
             document.getElementById('modal-confirm').classList.remove('hidden');
             document.getElementById('modal-confirm').classList.add('flex');
         });
+
+        document.getElementById('btn-rest').addEventListener('click', () => {
+            batchIndex++;
+            document.getElementById('modal-success').classList.add('hidden');
+            document.getElementById('modal-success').classList.remove('flex');
+            returnToMenu();
+        });
+
+        document.getElementById('btn-next-batch').addEventListener('click', () => {
+            batchIndex++;
+            document.getElementById('modal-success').classList.add('hidden');
+            document.getElementById('modal-success').classList.remove('flex');
+            renderBatch();
+        });
+
+        document.getElementById('btn-finish-unit').addEventListener('click', () => {
+            document.getElementById('modal-success').classList.add('hidden');
+            document.getElementById('modal-success').classList.remove('flex');
+            // reset progress since unit is fully completed
+            currentUnitData = [];
+            batchIndex = 0;
+            returnToMenu();
+        });
+
         document.getElementById('btn-confirm-cancel').addEventListener('click', () => {
             document.getElementById('modal-confirm').classList.add('hidden');
             document.getElementById('modal-confirm').classList.remove('flex');
@@ -638,6 +711,7 @@
             document.getElementById('screen-game').classList.add('hidden');
             document.getElementById('screen-menu').classList.remove('hidden');
             clearLines();
+            if (typeof updateStartButtons === 'function') updateStartButtons();
         }
 
         function clearLines() {
