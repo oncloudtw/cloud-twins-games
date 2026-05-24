@@ -256,18 +256,6 @@
 
         // 初始化
         async function init() {
-            const savedUser = localStorage.getItem('gameSession');
-            if (savedUser) {
-                currentUser = savedUser;
-                document.getElementById('modal-login').classList.add('hidden');
-                const greeting = document.getElementById('user-greeting');
-                const greetingName = document.getElementById('user-greeting-name');
-                if(greeting && greetingName) {
-                    greetingName.textContent = currentUser;
-                    greeting.classList.remove('hidden');
-                    greeting.classList.add('flex');
-                }
-            }
             await initData();
         }
 
