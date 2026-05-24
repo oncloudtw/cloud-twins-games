@@ -174,8 +174,13 @@
                         <i class="ph-bold ph-arrow-left"></i> 返回
                     </button>
                     <h2 id="current-unit-title" class="text-xl font-black tracking-wide">第二單元</h2>
-                    <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm">
-                        進度: <span id="progress-text">0/0</span>
+                    <div class="flex items-center gap-2 md:gap-4">
+                        <button id="btn-toggle-dict" class="flex items-center gap-1 font-bold text-emerald-100 hover:text-white transition-colors bg-white/10 px-2 md:px-3 py-1 md:py-1.5 rounded-lg hover:bg-white/20 text-xs md:text-sm" title="切換字典按鈕位置">
+                            <i class="ph-bold ph-arrows-left-right"></i> <span class="hidden md:inline">字典位置</span>
+                        </button>
+                        <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm">
+                            進度: <span id="progress-text">0/0</span>
+                        </div>
                     </div>
                 </div>
 
@@ -258,6 +263,7 @@
         let allIdiomsData = [];
         let unitsList = [];
         let currentUser = null;
+        let dictPosition = localStorage.getItem('dictPosition') || 'left';
         let batchStartTime = 0;
         let currentUnitData = [];
         let currentBatch = [];
@@ -487,7 +493,8 @@
             leftItems.forEach((item, index) => {
                 const btn = document.createElement('button');
                 btn.className = 'idiom-btn w-full bg-white border-2 border-emerald-200 text-emerald-800 font-bold py-3 px-1 md:px-2 rounded-2xl shadow-sm hover:border-emerald-400 hover:shadow-md transition-all active:scale-95 z-30 select-none relative group';
-                btn.innerHTML = `<div class="flex items-center justify-start w-full h-full pointer-events-none gap-1 md:gap-2"><div class="flex gap-1 pointer-events-auto shrink-0"><a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation(); trackDictClick('${item.idiom}', '成語典')" class="flex flex-col items-center justify-center bg-emerald-50 hover:bg-emerald-200 rounded-lg p-1 text-emerald-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10 text-lg md:text-xl">📖</a><a href="https://dacidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation(); trackDictClick('${item.idiom}', '漢語大詞典')" class="flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-200 rounded-lg p-1 text-blue-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10 text-lg md:text-xl">📚</a><a href="https://cidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation(); trackDictClick('${item.idiom}', '漢語詞典')" class="flex flex-col items-center justify-center bg-orange-50 hover:bg-orange-200 rounded-lg p-1 text-orange-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10 text-lg md:text-xl">📙</a></div><span class="flex-1 text-center text-lg md:text-2xl tracking-tight leading-tight break-keep">${item.idiom}</span></div>`;
+                const flexClass = dictPosition === 'right' ? 'flex-row-reverse' : 'justify-start';
+                btn.innerHTML = `<div class="dict-layout-container flex items-center ${flexClass} w-full h-full pointer-events-none gap-1 md:gap-2"><div class="flex gap-1 pointer-events-auto shrink-0"><a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation(); trackDictClick('${item.idiom}', '成語典')" class="flex flex-col items-center justify-center bg-emerald-50 hover:bg-emerald-200 rounded-lg p-1 text-emerald-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10 text-lg md:text-xl">📖</a><a href="https://dacidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation(); trackDictClick('${item.idiom}', '漢語大詞典')" class="flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-200 rounded-lg p-1 text-blue-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10 text-lg md:text-xl">📚</a><a href="https://cidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation(); trackDictClick('${item.idiom}', '漢語詞典')" class="flex flex-col items-center justify-center bg-orange-50 hover:bg-orange-200 rounded-lg p-1 text-orange-600 transition-colors shadow-sm w-8 h-8 md:w-10 md:h-10 text-lg md:text-xl">📙</a></div><span class="flex-1 text-center text-lg md:text-2xl tracking-tight leading-tight break-keep">${item.idiom}</span></div>`;
                 btn.dataset.id = item.idiom;
                 btn.style.animationDelay = `${index * 0.1}s`;
                 btn.classList.add('pop-in');
@@ -689,6 +696,20 @@
             document.getElementById('modal-success').classList.add('hidden');
             document.getElementById('modal-success').classList.remove('flex');
             returnToMenu();
+        });
+
+        document.getElementById('btn-toggle-dict').addEventListener('click', () => {
+            dictPosition = dictPosition === 'left' ? 'right' : 'left';
+            localStorage.setItem('dictPosition', dictPosition);
+            document.querySelectorAll('.dict-layout-container').forEach(container => {
+                if (dictPosition === 'right') {
+                    container.classList.remove('justify-start');
+                    container.classList.add('flex-row-reverse');
+                } else {
+                    container.classList.remove('flex-row-reverse');
+                    container.classList.add('justify-start');
+                }
+            });
         });
 
         function trackDictClick(word, dictType) {
