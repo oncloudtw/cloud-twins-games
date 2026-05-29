@@ -171,7 +171,7 @@
                             </div>
                             
                             <!-- 三大字典按鈕 -->
-                            <div v-if="currentQuestion.vocab && currentQuestion.vocab.length >= 2" class="flex gap-2 self-end md:self-auto flex-wrap justify-end">
+                            <div v-if="currentQuestion.vocab" class="flex gap-2 self-end md:self-auto flex-wrap justify-end">
                                 <a onclick="trackDictClickGlobal(this.dataset.vocab, '成語典')" :data-vocab="currentQuestion.vocab" :href="'https://chengyu.18dao.net/chengyu/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-emerald-50 text-emerald-600 rounded-full px-3 py-1.5 hover:bg-emerald-200 transition-colors shadow-sm border border-emerald-200 text-xs md:text-sm font-bold" title="成語典 (圖解與語音)">
                                     <span class="text-base md:text-lg leading-none">📖</span>
                                     <span>成語典</span>
