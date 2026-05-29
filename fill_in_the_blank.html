@@ -77,7 +77,7 @@
         <!-- =================== 畫面一：主選單 =================== -->
         <div v-if="gameState === 'menu'" class="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col items-center">
             
-            <div class="w-full max-w-md mt-auto mb-auto flex flex-col items-center py-4">
+            <div class="w-full max-w-md mt-8 md:mt-12 mb-auto flex flex-col items-center py-4">
                 <header class="text-center mb-6 w-full pop-in">
                     <h1 class="text-3xl md:text-4xl font-black text-blue-600 mb-3 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
                         <i class="ph-fill ph-pencil-simple"></i> 字音字形填空
@@ -160,7 +160,7 @@
             </div>
 
             <!-- 遊戲主要內容區 -->
-            <div class="flex-1 p-4 md:p-12 overflow-y-auto flex flex-col items-center justify-center relative">
+            <div class="flex-1 p-4 md:p-12 md:pt-16 overflow-y-auto flex flex-col items-center justify-start relative">
                 
                 <div v-if="currentBatchQuestions.length > 0" class="w-full max-w-2xl">
                     <!-- 提示區塊 -->
