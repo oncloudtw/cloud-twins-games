@@ -865,7 +865,7 @@
 
                 // 強化模式中答對，從錯題庫移除
                 if (isReinforcementMode && !failedIdiomIds.has(selectedIdiom.id)) {
-                    const matchedItem = allIdiomsData.find(i => i.idiom === selectedIdiom.id);
+                    const matchedItem = currentUnitData.find(i => i.idiom === selectedIdiom.id) || allIdiomsData.find(i => i.idiom === selectedIdiom.id);
                     if (matchedItem && matchedItem.unit) {
                         const qUnit = matchedItem.unit;
                         if (allReviewBanks[qUnit]) {
@@ -904,8 +904,9 @@
                 const failedCount = failedIdiomIds.size;
                 const correctCount = Math.max(0, totalQuestions - failedCount);
                 
-                const timeSpent = Math.floor((Date.now() - batchStartTime) / 1000);
+                const timeSpent = Math.round((Date.now() - batchStartTime) / 10) / 100;
                 unitTotalTime += timeSpent;
+                unitTotalTime = Math.round(unitTotalTime * 100) / 100;
 
                 setTimeout(() => {
                     const modal = document.getElementById('modal-success');
@@ -921,7 +922,7 @@
                         const totalUnitQuestions = currentUnitData.length;
                         const finalCorrect = Math.max(0, totalUnitQuestions - unitFailedIdiomIds.size);
                         const finalScore = Math.round((finalCorrect / totalUnitQuestions) * 100);
-                        document.getElementById('score-text').innerHTML = `本關耗時: ${timeSpent} 秒<br><br><span class="text-2xl text-emerald-700">單元總得分: ${finalScore}分</span><br><span class="text-emerald-700 font-medium">總耗時: ${unitTotalTime} 秒</span><br><span class="text-sm text-slate-500 font-medium">共 ${totalUnitQuestions} 題，一次答對 ${finalCorrect} 題</span>`;
+                        document.getElementById('score-text').innerHTML = `本關耗時: ${Number(timeSpent).toFixed(2)} 秒<br><br><span class="text-2xl text-emerald-700">單元總得分: ${finalScore}分</span><br><span class="text-emerald-700 font-medium">總耗時: ${Number(unitTotalTime).toFixed(2)} 秒</span><br><span class="text-sm text-slate-500 font-medium">共 ${totalUnitQuestions} 題，一次答對 ${finalCorrect} 題</span>`;
                         document.getElementById('score-text').classList.remove('hidden');
                         document.getElementById('btn-rest').classList.add('hidden');
                         document.getElementById('btn-next-batch').classList.add('hidden');
@@ -950,7 +951,7 @@
                             }
                         }
                     } else {
-                        document.getElementById('score-text').innerHTML = `本關得分: ${batchScore} 分<br><span class="text-sm text-emerald-700">耗時: ${timeSpent} 秒</span>`;
+                        document.getElementById('score-text').innerHTML = `本關得分: ${batchScore} 分<br><span class="text-sm text-emerald-700">耗時: ${Number(timeSpent).toFixed(2)} 秒</span>`;
                         document.getElementById('score-text').classList.remove('hidden');
                         document.getElementById('btn-rest').classList.remove('hidden');
                         document.getElementById('btn-next-batch').classList.remove('hidden');
@@ -1236,7 +1237,7 @@
         init();
 
         // =================== 排行榜邏輯 ===================
-        function fetchLeaderboard() {
+        function fetchLeaderboard(retryCount = 3) {
             if (!GAS_API_URL) return;
             const tbody = document.getElementById('leaderboard-body');
             tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-500 font-medium"><i class="ph-bold ph-spinner animate-spin text-2xl mb-2"></i><br>載入中...</td></tr>`;
@@ -1249,11 +1250,13 @@
                     leaderboardDataCache = res.data;
                     renderLeaderboard();
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`;
+                    if (retryCount > 0) { setTimeout(() => fetchLeaderboard(retryCount - 1), 1000); }
+                    else { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`; }
                 }
             }).catch(e => {
                 console.error(e);
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`;
+                if (retryCount > 0) { setTimeout(() => fetchLeaderboard(retryCount - 1), 1000); }
+                else { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`; }
             });
         }
 
@@ -1293,7 +1296,7 @@
                     <td class="py-3 px-4 font-bold text-slate-700">${record.username}</td>
                     <td class="py-3 px-4 text-sm text-slate-600">${record.unit}</td>
                     <td class="py-3 px-4 font-bold text-emerald-600">${record.score}分</td>
-                    <td class="py-3 px-4 font-medium text-blue-600">${record.timeSpent}秒</td>
+                    <td class="py-3 px-4 font-medium text-blue-600">${Number(record.timeSpent).toFixed(2)}秒</td>
                 `;
                 tbody.appendChild(tr);
             });

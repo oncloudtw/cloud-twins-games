@@ -1,4 +1,9 @@
 /**
+ * 試算表 ID：請確保這個 ID 與前端遊戲使用的 ID 相同
+ */
+var SHEET_ID = '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo';
+
+/**
  * 處理來自前端的 POST 請求
  */
 function doPost(e) {
@@ -8,6 +13,10 @@ function doPost(e) {
     var data = postData.data;
 
     switch (action) {
+      case 'login':
+        return login(data);
+      case 'logDictClick':
+        return logDictClick(data);
       case 'saveGameRecord':
         return saveGameRecord(data);
       case 'saveUserData':
@@ -42,7 +51,7 @@ function doGet(e) {
  */
 function saveGameRecord(data) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = SpreadsheetApp.openById(SHEET_ID);
     var sheet = ss.getSheetByName('GameRecords');
     if (!sheet) {
       sheet = ss.insertSheet('GameRecords');
@@ -81,7 +90,7 @@ function saveGameRecord(data) {
  * 確保 UserData 頁籤存在 (新增的功能)
  */
 function ensureUserDataSheet() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = SpreadsheetApp.openById(SHEET_ID);
   var sheet = ss.getSheetByName('UserData');
   if (!sheet) {
     sheet = ss.insertSheet('UserData');
@@ -179,7 +188,7 @@ function getUserData(data) {
 function getLeaderboard(data) {
   try {
     var gameName = data.game;
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = SpreadsheetApp.openById(SHEET_ID);
     var sheet = ss.getSheetByName('GameRecords');
     if (!sheet) {
       return ContentService.createTextOutput(JSON.stringify({ 
@@ -215,6 +224,94 @@ function getLeaderboard(data) {
       data: records 
     })).setMimeType(ContentService.MimeType.JSON);
     
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: 'error', 
+      message: e.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 處理玩家登入驗證
+ */
+function login(data) {
+  try {
+    var username = data.username;
+    var password = data.password;
+    
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName('Users');
+    
+    if (!sheet) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: false, 
+        error: "系統未建立 Users 頁籤，請先在試算表建立 Users 頁籤 (A欄為帳號, B欄為密碼)" 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var values = sheet.getDataRange().getValues();
+    var found = false;
+    var pwdMatch = false;
+    
+    for (var i = 1; i < values.length; i++) { // 假設第一列是標題列
+      if (values[i][0] == username) {
+        found = true;
+        if (values[i][1] == password) {
+          pwdMatch = true;
+        }
+        break;
+      }
+    }
+    
+    if (found && pwdMatch) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: true 
+      })).setMimeType(ContentService.MimeType.JSON);
+    } else if (found && !pwdMatch) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: false,
+        error: "密碼錯誤"
+      })).setMimeType(ContentService.MimeType.JSON);
+    } else {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: false,
+        error: "找不到此帳號"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, 
+      error: e.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 記錄字典點擊事件
+ */
+function logDictClick(data) {
+  try {
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName('DictLogs');
+    if (!sheet) {
+      sheet = ss.insertSheet('DictLogs');
+      sheet.appendRow(['Timestamp', 'Username', 'Game', 'Word', 'DictType']);
+      sheet.getRange("A1:E1").setFontWeight("bold").setBackground("#fff2cc");
+      sheet.setFrozenRows(1);
+    }
+    
+    sheet.appendRow([
+      new Date(),
+      data.username || '訪客',
+      data.game || '未知遊戲',
+      data.word || '',
+      data.dictType || ''
+    ]);
+    
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: 'success' 
+    })).setMimeType(ContentService.MimeType.JSON);
   } catch (e) {
     return ContentService.createTextOutput(JSON.stringify({ 
       status: 'error', 

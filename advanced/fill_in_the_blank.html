@@ -122,6 +122,15 @@
                     </div>
 
                     <div class="space-y-2">
+                        <label class="block text-sm font-bold text-blue-700 mb-2">選擇挑戰模式：</label>
+                        <select v-model="gameMode" :disabled="canResume" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <option value="trueHero">🏆 完整真英雄 (預設存檔)</option>
+                            <option value="sprint20">🏃 20題挑戰賽 (隨機測驗)</option>
+                            <option value="survival">⏱️ 限時生存賽 (3分鐘無限題)</option>
+                        </select>
+                    </div>
+
+                    <div v-if="gameMode === 'trueHero'" class="space-y-2">
                         <label class="block text-sm font-bold text-blue-700 mb-2">每階段題數：</label>
                         <select v-model="batchSize" :disabled="canResume" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">
                             <option :value="5">5 題 / 階段</option>
@@ -168,21 +177,24 @@
                 </button>
                 <h2 class="text-xl font-black tracking-wide">{{ currentUnit }}</h2>
                 <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm flex gap-1 items-center">
-                    <span v-if="batchSize < 999" class="bg-blue-800 px-2 py-0.5 rounded mr-1">第 {{ currentBatchIndex + 1 }} / {{ totalBatches }} 關</span>
+                    <span v-if="gameMode === 'survival'" class="bg-rose-600 px-2 py-0.5 rounded mr-1 text-white flex items-center gap-1 animate-pulse">
+                        <i class="ph-bold ph-timer"></i> {{ Math.floor(survivalTimeLeft / 60) }}:{{ (survivalTimeLeft % 60).toString().padStart(2, '0') }}
+                    </span>
+                    <span v-else-if="batchSize < 999" class="bg-blue-800 px-2 py-0.5 rounded mr-1">第 {{ currentBatchIndex + 1 }} / {{ totalBatches }} 關</span>
                     <span>進度: {{ currentIndex + 1 }} / {{ currentBatchQuestions.length }}</span>
                 </div>
             </div>
 
             <!-- 控制面板 -->
             <div class="bg-blue-50 px-4 py-3 border-b border-blue-200 flex justify-center gap-2 md:gap-4 relative z-10 shadow-sm flex-wrap">
-                <button @click="prevQuestion" :disabled="currentIndex === 0" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-blue-700 bg-white border border-blue-300 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <button v-if="gameMode === 'trueHero'" @click="prevQuestion" :disabled="currentIndex === 0" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-blue-700 bg-white border border-blue-300 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                     <i class="ph-bold ph-caret-left"></i> 上一題
                 </button>
                 <button @click="showAnswer" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 transition-colors">
                     <i class="ph-bold ph-lightbulb"></i> 看解答
                 </button>
                 <button @click="nextQuestion" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-blue-700 bg-white border border-blue-300 hover:bg-blue-100 transition-colors shadow-sm">
-                    下一題 <i class="ph-bold ph-caret-right"></i>
+                    <span v-if="gameMode === 'survival'">跳過</span><span v-else>下一題</span> <i class="ph-bold ph-caret-right"></i>
                 </button>
             </div>
 
@@ -266,7 +278,7 @@
                 本關答對率 (一次答對): <span class="text-2xl">{{ stageScore }}</span>%
             </div>
             <div class="text-lg text-blue-700 font-medium mb-6">
-                本關耗時: <span>{{ currentStageTime }}</span> 秒
+                本關耗時: <span>{{ Number(currentStageTime).toFixed(2) }}</span> 秒
             </div>
             
             <div class="flex gap-4">
@@ -282,14 +294,23 @@
         <!-- =================== Modal: 最終過關結算 =================== -->
         <div v-if="showSuccessModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-start pt-24 md:pt-32 items-center p-6 text-center rounded-3xl">
             <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-trophy"></i></div>
-            <h2 class="text-3xl font-black text-blue-700 mb-2">太棒了！單元全部完成！</h2>
-            <p class="text-slate-600 font-medium mb-4">您已經完成了「{{ currentUnit }}」的所有題目。</p>
+            <h2 class="text-3xl font-black text-blue-700 mb-2">
+                <span v-if="gameMode === 'survival'">時間到！生存挑戰結束！</span>
+                <span v-else-if="gameMode === 'sprint20'">20題挑戰完成！</span>
+                <span v-else>太棒了！單元全部完成！</span>
+            </h2>
+            <p class="text-slate-600 font-medium mb-4">
+                <span v-if="gameMode === 'survival'">您在「{{ currentUnit }}」生存賽中奮戰了 3 分鐘！</span>
+                <span v-else>您已經完成了「{{ currentUnit }}」的題目挑戰。</span>
+            </p>
             
             <div class="text-xl text-emerald-800 font-bold mb-2 bg-emerald-100 py-2 px-6 rounded-full border-2 border-emerald-300">
-                本單元總得分: <span class="text-2xl">{{ Math.round((totalCorrectCount / questions.length) * 100) }}</span>分
+                <span v-if="gameMode === 'survival'">總答對題數: <span class="text-2xl">{{ totalCorrectCount }}</span> 題</span>
+                <span v-else>總得分: <span class="text-2xl">{{ Math.round((totalCorrectCount / questions.length) * 100) }}</span> 分</span>
             </div>
             <div class="text-lg text-emerald-700 font-medium mb-6">
-                總答題時間: <span>{{ unitTotalTime }}</span> 秒
+                <span v-if="gameMode === 'survival'">生存時間: 180.00 秒</span>
+                <span v-else>總答題時間: <span>{{ Number(unitTotalTime).toFixed(2) }}</span> 秒</span>
             </div>
             
             <div class="flex gap-4">
@@ -357,7 +378,7 @@
                                 <td class="py-3 px-4 font-bold text-slate-700">{{ record.username }}</td>
                                 <td class="py-3 px-4 text-sm text-slate-600">{{ record.unit }}</td>
                                 <td class="py-3 px-4 font-bold text-emerald-600">{{ record.score }}分</td>
-                                <td class="py-3 px-4 font-medium text-blue-600">{{ record.timeSpent }}秒</td>
+                                <td class="py-3 px-4 font-medium text-blue-600">{{ Number(record.timeSpent).toFixed(2) }}秒</td>
                             </tr>
                         </tbody>
                     </table>
@@ -428,6 +449,11 @@
                 const inputStatus = ref(''); 
                 const feedbackMessage = ref('');
                 const loading = ref(true);
+
+                // Game Modes
+                const gameMode = ref('trueHero'); // 'trueHero', 'sprint20', 'survival'
+                const survivalTimeLeft = ref(180); // 3 minutes
+                let survivalTimer = null;
 
                 // Modals and Score
                 const showConfirmModal = ref(false);
@@ -506,7 +532,7 @@
                     gameState.value = 'review';
                 };
 
-                const fetchLeaderboard = () => {
+                const fetchLeaderboard = (retryCount = 3) => {
                     if (!GAS_API_URL) return;
                     leaderboardLoading.value = true;
                     fetch(GAS_API_URL, {
@@ -515,9 +541,15 @@
                     }).then(res => res.json()).then(res => {
                         if (res.status === 'success') {
                             leaderboardData.value = res.data;
+                            leaderboardLoading.value = false;
+                        } else {
+                            if (retryCount > 0) setTimeout(() => fetchLeaderboard(retryCount - 1), 1000);
+                            else leaderboardLoading.value = false;
                         }
-                    }).catch(e => console.error(e)).finally(() => {
-                        leaderboardLoading.value = false;
+                    }).catch(e => {
+                        console.error(e);
+                        if (retryCount > 0) setTimeout(() => fetchLeaderboard(retryCount - 1), 1000);
+                        else leaderboardLoading.value = false;
                     });
                 };
 
@@ -709,6 +741,17 @@
                     nextTick(() => {
                         resetInputFocus();
                     });
+                    
+                    if (gameMode.value === 'survival') {
+                        clearInterval(survivalTimer);
+                        survivalTimer = setInterval(() => {
+                            survivalTimeLeft.value--;
+                            if (survivalTimeLeft.value <= 0) {
+                                clearInterval(survivalTimer);
+                                endSurvivalGame();
+                            }
+                        }, 1000);
+                    }
                 };
                 
                 const resumeGame = () => {
@@ -720,6 +763,9 @@
                 };
 
                 const confirmBackToMenu = () => {
+                    if (gameMode.value === 'survival' && survivalTimer) {
+                        clearInterval(survivalTimer);
+                    }
                     showConfirmModal.value = true;
                 };
 
@@ -741,6 +787,25 @@
                     showStageModal.value = false;
                     showSuccessModal.value = false;
                     gameState.value = 'menu';
+                    if (survivalTimer) clearInterval(survivalTimer);
+                };
+
+                const endSurvivalGame = () => {
+                    gameState.value = 'menu'; // Or keep it playing to show modal
+                    showSuccessModal.value = true;
+                    unitTotalTime.value = 180;
+                    
+                    // 單元完成，將錯題存入錯題庫
+                    if (unitFailedItems.value.length > 0) {
+                        const bank = allReviewBanks.value[currentUnit.value] || [];
+                        unitFailedItems.value.forEach(item => {
+                            if (!bank.some(i => i.vocab === item.vocab)) bank.push(item);
+                        });
+                        allReviewBanks.value[currentUnit.value] = bank;
+                        syncUserData();
+                    }
+                    sendGameRecord();
+                    clearProgress();
                 };
 
                 const goToReview = () => {
@@ -979,7 +1044,25 @@
                 const loadUnitData = () => {
                     const unitData = allDataRows.value.filter(item => item.unit === currentUnit.value);
                     if (unitData.length > 0) {
-                        questions.value = shuffleArray(unitData);
+                        let baseQuestions = shuffleArray(unitData);
+                        
+                        if (gameMode.value === 'sprint20') {
+                            questions.value = baseQuestions.slice(0, 20);
+                            batchSize.value = 999; // one single batch
+                        } else if (gameMode.value === 'survival') {
+                            // Generate a large pool of questions to ensure they never run out in 3 minutes
+                            let survivalPool = [];
+                            for(let i = 0; i < 5; i++) {
+                                survivalPool = survivalPool.concat(shuffleArray(unitData));
+                            }
+                            questions.value = survivalPool;
+                            batchSize.value = 999; // one single batch
+                            survivalTimeLeft.value = 180;
+                        } else {
+                            // trueHero mode
+                            questions.value = baseQuestions;
+                        }
+                        
                         feedbackMessage.value = '';
                     } else {
                         questions.value = [];
@@ -1001,9 +1084,17 @@
                     if (currentUnit.value.includes('生詞本') || isReinforcementMode.value) return; // 複習模式不列入總排行榜
 
                     const wrongWords = unitFailedItems.value.map(i => i.vocab);
-                    const unitTitle = currentUnit.value;
+                    let unitTitle = currentUnit.value;
                     const totalQuestions = questions.value.length;
-                    const score = Math.round((totalCorrectCount.value / totalQuestions) * 100);
+                    let score = Math.round((totalCorrectCount.value / totalQuestions) * 100);
+                    
+                    if (gameMode.value === 'sprint20') {
+                        unitTitle += ' (20題挑戰)';
+                    } else if (gameMode.value === 'survival') {
+                        unitTitle += ' (限時生存)';
+                        // 生存模式：總答對題數即為得分（方便排序）
+                        score = totalCorrectCount.value;
+                    }
 
                     fetch(GAS_API_URL, {
                         method: 'POST',
@@ -1100,9 +1191,9 @@
                         // 檢查是否還有下一批
                         const hasNextStage = (currentBatchIndex.value + 1) * batchSize.value < questions.value.length;
                         
-                        const timeSpent = Math.floor((Date.now() - batchStartTime.value) / 1000);
+                        const timeSpent = Math.round((Date.now() - batchStartTime.value) / 10) / 100;
                         currentStageTime.value = timeSpent;
-                        unitTotalTime.value += timeSpent;
+                        unitTotalTime.value = Math.round((unitTotalTime.value + timeSpent) * 100) / 100;
 
                         if (!hasNextStage) {
                             sendGameRecord();
