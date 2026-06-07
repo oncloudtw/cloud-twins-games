@@ -344,6 +344,13 @@
                         <option value="all">所有單元 (綜合)</option>
                         <option v-for="unitObj in availableUnits" :value="unitObj.name">{{ unitObj.name }}</option>
                     </select>
+                    
+                    <label class="font-bold text-slate-700 whitespace-nowrap ml-2">模式：</label>
+                    <select v-model="leaderboardMode" class="px-4 py-2 rounded-xl border-2 border-indigo-200 focus:border-indigo-500 font-medium text-slate-700">
+                        <option value="trueHero">真英雄榜</option>
+                        <option value="sprint20">20題挑戰</option>
+                        <option value="survival">限時生存</option>
+                    </select>
                 </div>
                 
                 <div class="flex-1 overflow-y-auto bg-slate-50 rounded-2xl border border-slate-200">
@@ -463,6 +470,7 @@
                 const leaderboardData = ref([]);
                 const leaderboardLoading = ref(false);
                 const leaderboardUnit = ref('all');
+                const leaderboardMode = ref('trueHero'); // 'trueHero', 'sprint20', 'survival'
                 
                 const failedQuestions = ref(new Set()); // 紀錄當前批次曾經答錯或看解答的題目索引
                 const stageCorrectCount = ref(0); // 當前階段第一次就答對的數量
@@ -562,13 +570,27 @@
 
                 const filteredLeaderboard = computed(() => {
                     let data = leaderboardData.value;
+                    
+                    // 1. Filter by Unit (if not 'all')
                     if (leaderboardUnit.value !== 'all') {
-                        data = data.filter(r => r.unit === leaderboardUnit.value);
+                        data = data.filter(r => r.unit.startsWith(leaderboardUnit.value));
                     }
+                    
+                    // 2. Filter by Mode
+                    if (leaderboardMode.value === 'trueHero') {
+                        data = data.filter(r => !r.unit.includes('(20題挑戰)') && !r.unit.includes('(限時生存)'));
+                    } else if (leaderboardMode.value === 'sprint20') {
+                        data = data.filter(r => r.unit.includes('(20題挑戰)'));
+                    } else if (leaderboardMode.value === 'survival') {
+                        data = data.filter(r => r.unit.includes('(限時生存)'));
+                    }
+                    
+                    // 3. Sort
                     data.sort((a, b) => {
                         if (b.score !== a.score) return b.score - a.score;
-                        return a.timeSpent - b.timeSpent;
+                        return a.timeSpent - b.timeSpent; // lower time is better
                     });
+                    
                     return data.slice(0, 10);
                 });
 
