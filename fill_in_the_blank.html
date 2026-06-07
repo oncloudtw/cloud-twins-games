@@ -214,7 +214,7 @@
         </div>
 
         <!-- =================== Modal: 確認返回 =================== -->
-        <div v-if="showConfirmModal" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center rounded-3xl">
+        <div v-if="showConfirmModal" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex flex-col justify-start pt-24 md:pt-32 items-center p-6 text-center rounded-3xl">
             <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
                 <div class="text-5xl text-rose-500 mb-4"><i class="ph-fill ph-warning-circle"></i></div>
                 <h2 class="text-2xl font-bold text-slate-800 mb-2">確定要返回嗎？</h2>
@@ -227,7 +227,7 @@
         </div>
 
         <!-- =================== Modal: 階段過關結算 =================== -->
-        <div v-if="showStageModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center rounded-3xl">
+        <div v-if="showStageModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-start pt-24 md:pt-32 items-center p-6 text-center rounded-3xl">
             <div class="text-6xl text-blue-500 mb-4 animate-bounce"><i class="ph-fill ph-flag-checkered"></i></div>
             <h2 class="text-3xl font-black text-blue-700 mb-2">第 {{ currentBatchIndex + 1 }} 關 完成！</h2>
             <p class="text-slate-600 font-medium mb-4">您可以稍作休息，或繼續挑戰下一關。</p>
@@ -247,7 +247,7 @@
         </div>
 
         <!-- =================== Modal: 最終過關結算 =================== -->
-        <div v-if="showSuccessModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-center items-center p-6 text-center rounded-3xl">
+        <div v-if="showSuccessModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-start pt-24 md:pt-32 items-center p-6 text-center rounded-3xl">
             <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-trophy"></i></div>
             <h2 class="text-3xl font-black text-blue-700 mb-2">太棒了！單元全部完成！</h2>
             <p class="text-slate-600 font-medium mb-4">您已經完成了「{{ currentUnit }}」的所有題目。</p>
