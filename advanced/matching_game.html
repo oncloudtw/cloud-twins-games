@@ -129,12 +129,23 @@
                     <h2 class="text-2xl font-bold text-center text-emerald-800 mb-6">選擇挑戰單元</h2>
 
                     <div class="space-y-4">
+                        <!-- 我的生詞本入口 -->
+                        <button id="btn-vocab-book" class="hidden w-full mb-6 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-4 rounded-xl text-xl shadow-lg hover:-translate-y-1 transition-all duration-200 justify-center items-center gap-2">
+                            <i class="ph-fill ph-star"></i>
+                            <span id="vocab-book-text">⭐ 我的生詞本</span>
+                        </button>
+
                         <div>
                             <label class="block text-sm font-bold text-emerald-700 mb-2">請選擇：</label>
                             <select id="unit-select"
                                 class="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 bg-white text-lg focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer font-medium text-slate-700">
                                 <option disabled selected>正在掃描題庫中...</option>
                             </select>
+                            <div id="review-menu-container" class="hidden mt-2 text-right">
+                                <button id="btn-review-menu" class="text-amber-600 hover:text-amber-700 font-bold text-sm flex items-center justify-end gap-1 w-full mt-1 transition-colors">
+                                    <i class="ph-bold ph-book-open"></i> 📜 複習本單元錯題
+                                </button>
+                            </div>
                         </div>
 
                         <!-- 按鈕群 -->
@@ -302,6 +313,10 @@
         let matchedPairs = [];
         let failedIdiomIds = new Set();
         let unitFailedIdiomIds = new Set();
+        
+        let isReinforcementMode = false;
+        let vocabBook = new Map();
+        let allReviewBanks = {};
 
         function saveProgress() {
             if (!currentUser || currentUnitData.length === 0) return;
@@ -341,6 +356,84 @@
         // 初始化
         async function init() {
             await initData();
+            await fetchUserData();
+        }
+
+        async function fetchUserData() {
+            if (!GAS_API_URL || !currentUser) return;
+            try {
+                const localReview = localStorage.getItem(`${currentUser}_matchingReviewBank`);
+                if (localReview) allReviewBanks = JSON.parse(localReview);
+                
+                const localVocab = localStorage.getItem(`${currentUser}_matchingVocabBook`);
+                if (localVocab) {
+                    const arr = JSON.parse(localVocab);
+                    arr.forEach(item => vocabBook.set(item.idiom, item));
+                }
+            } catch(e) {}
+            
+            if (typeof renderMenuButtons === 'function') renderMenuButtons();
+
+            try {
+                const res = await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getUserData', data: { username: currentUser } })
+                });
+                const json = await res.json();
+                if (json.status === 'success' && json.data) {
+                    if (json.data.matchingReviewBank) {
+                        allReviewBanks = json.data.matchingReviewBank;
+                        localStorage.setItem(`${currentUser}_matchingReviewBank`, JSON.stringify(allReviewBanks));
+                    }
+                    if (json.data.matchingVocabBook) {
+                        vocabBook.clear();
+                        json.data.matchingVocabBook.forEach(item => vocabBook.set(item.idiom, item));
+                        localStorage.setItem(`${currentUser}_matchingVocabBook`, JSON.stringify(json.data.matchingVocabBook));
+                    }
+                    if (typeof renderMenuButtons === 'function') renderMenuButtons();
+                }
+            } catch (e) { console.error('fetchUserData err', e); }
+        }
+
+        function syncUserData() {
+            if (!GAS_API_URL || !currentUser) return;
+            const reviewData = allReviewBanks;
+            const vocabData = Array.from(vocabBook.values());
+            
+            localStorage.setItem(`${currentUser}_matchingReviewBank`, JSON.stringify(reviewData));
+            localStorage.setItem(`${currentUser}_matchingVocabBook`, JSON.stringify(vocabData));
+            
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'saveUserData',
+                    data: {
+                        username: currentUser,
+                        payload: {
+                            matchingReviewBank: reviewData,
+                            matchingVocabBook: vocabData
+                        }
+                    }
+                })
+            }).catch(e => console.error(e));
+        }
+
+        function toggleVocab(idiomWord) {
+            const item = allIdiomsData.find(i => i.idiom === idiomWord) || Array.from(vocabBook.values()).find(i => i.idiom === idiomWord);
+            if (!item) return;
+
+            if (vocabBook.has(item.idiom)) {
+                vocabBook.delete(item.idiom);
+            } else {
+                vocabBook.set(item.idiom, item);
+            }
+            syncUserData();
+            
+            if (document.getElementById('screen-review').classList.contains('hidden') === false) {
+                showReviewScreen();
+            } else {
+                renderMenuButtons();
+            }
         }
 
         async function initData() {
@@ -467,7 +560,10 @@
                 select.appendChild(option);
             });
 
-            select.addEventListener('change', updateStartButtons);
+            select.addEventListener('change', () => {
+                updateStartButtons();
+                renderMenuButtons();
+            });
             
             if (restoreProgress()) {
                 select.value = currentUnitData[0].unit;
@@ -476,6 +572,38 @@
             }
             
             updateStartButtons();
+            renderMenuButtons();
+        }
+
+        function renderMenuButtons() {
+            const vocabList = Array.from(vocabBook.values());
+            const btnVocab = document.getElementById('btn-vocab-book');
+            if (vocabList.length > 0) {
+                btnVocab.classList.remove('hidden');
+                btnVocab.classList.add('flex');
+                document.getElementById('vocab-book-text').textContent = `⭐ 我的生詞本 (${vocabList.length} 字)`;
+            } else {
+                btnVocab.classList.add('hidden');
+                btnVocab.classList.remove('flex');
+            }
+
+            const currentUnit = document.getElementById('unit-select').value;
+            const reviewMenuContainer = document.getElementById('review-menu-container');
+            const btnReviewMenu = document.getElementById('btn-review-menu');
+            
+            if (currentUnit && allReviewBanks[currentUnit] && allReviewBanks[currentUnit].length > 0) {
+                const isSameUnit = currentUnitData.length > 0 && currentUnitData[0].unit === currentUnit;
+                const canResume = isSameUnit && (batchIndex * BATCH_SIZE < currentUnitData.length) && batchIndex > 0;
+                
+                if (!canResume) {
+                    reviewMenuContainer.classList.remove('hidden');
+                    btnReviewMenu.innerHTML = `<i class="ph-bold ph-book-open"></i> 📜 複習本單元錯題 (尚有 ${allReviewBanks[currentUnit].length} 題)`;
+                } else {
+                    reviewMenuContainer.classList.add('hidden');
+                }
+            } else {
+                reviewMenuContainer.classList.add('hidden');
+            }
         }
 
         function updateStartButtons() {
@@ -530,6 +658,11 @@
                 failedIdiomIds.clear();
                 unitFailedIdiomIds.clear();
                 saveProgress();
+                
+                if (allReviewBanks[unit]) {
+                    delete allReviewBanks[unit];
+                    syncUserData();
+                }
             }
 
             document.getElementById('current-unit-title').textContent = unit;
@@ -542,6 +675,26 @@
         document.getElementById('btn-start').addEventListener('click', () => startGameAction(true));
         document.getElementById('btn-restart').addEventListener('click', () => startGameAction(true));
         document.getElementById('btn-resume').addEventListener('click', () => startGameAction(false));
+
+        document.getElementById('btn-vocab-book').addEventListener('click', () => {
+            const items = Array.from(vocabBook.values());
+            if (items.length === 0) return;
+            
+            unitFailedIdiomIds.clear();
+            items.forEach(i => unitFailedIdiomIds.add(i.idiom));
+            document.getElementById('current-unit-title').textContent = "綜合生詞本";
+            showReviewScreen();
+        });
+
+        document.getElementById('btn-review-menu').addEventListener('click', () => {
+            const unit = document.getElementById('unit-select').value;
+            if (!unit || !allReviewBanks[unit]) return;
+            
+            unitFailedIdiomIds.clear();
+            allReviewBanks[unit].forEach(i => unitFailedIdiomIds.add(i.idiom));
+            document.getElementById('current-unit-title').textContent = unit;
+            showReviewScreen();
+        });
 
         function renderBatch() {
             const colIdioms = document.getElementById('col-idioms');
@@ -619,6 +772,22 @@
                 });
                 matchedPairs.push({ left: idiomElem, right: meaningElem });
                 drawAllLines();
+
+                // 強化模式中答對，從錯題庫移除
+                if (isReinforcementMode && !failedIdiomIds.has(selectedIdiom.id)) {
+                    const matchedItem = allIdiomsData.find(i => i.idiom === selectedIdiom.id);
+                    if (matchedItem && matchedItem.unit) {
+                        const qUnit = matchedItem.unit;
+                        if (allReviewBanks[qUnit]) {
+                            allReviewBanks[qUnit] = allReviewBanks[qUnit].filter(i => i.idiom !== selectedIdiom.id);
+                            if (allReviewBanks[qUnit].length === 0) {
+                                delete allReviewBanks[qUnit];
+                            }
+                            syncUserData();
+                        }
+                    }
+                }
+
                 selectedIdiom = null;
                 selectedMeaning = null;
                 checkBatchComplete();
@@ -671,6 +840,20 @@
                         } else {
                             document.getElementById('btn-review-unit').classList.add('hidden');
                             document.getElementById('btn-finish-unit').classList.remove('hidden');
+                        }
+
+                        // 單元完成，將錯題存入錯題庫
+                        if (!isReinforcementMode && unitFailedIdiomIds.size > 0) {
+                            const unitTitle = document.getElementById('current-unit-title').textContent;
+                            if (!unitTitle.includes('測驗') && !unitTitle.includes('生詞本')) {
+                                const bank = allReviewBanks[unitTitle] || [];
+                                unitFailedIdiomIds.forEach(id => {
+                                    const item = allIdiomsData.find(i => i.idiom === id);
+                                    if (item && !bank.some(i => i.idiom === item.idiom)) bank.push(item);
+                                });
+                                allReviewBanks[unitTitle] = bank;
+                                syncUserData();
+                            }
                         }
                     } else {
                         document.getElementById('score-text').textContent = `本關得分: ${batchScore} 分`;
@@ -783,13 +966,22 @@
             reviewContainer.innerHTML = '';
             
             unitFailedIdiomIds.forEach(id => {
-                const item = allIdiomsData.find(i => i.idiom === id);
+                const item = allIdiomsData.find(i => i.idiom === id) || Array.from(vocabBook.values()).find(i => i.idiom === id);
                 if (item) {
                     const div = document.createElement('div');
-                    div.className = 'bg-amber-50 p-5 rounded-2xl border border-amber-200';
+                    div.className = 'bg-amber-50 p-5 rounded-2xl border border-amber-200 relative flex justify-between items-start gap-4';
+                    
+                    const isStarred = vocabBook.has(item.idiom);
+                    const starIconClass = isStarred ? 'ph-fill ph-star text-yellow-500' : 'ph-regular ph-star text-slate-300 hover:text-yellow-400';
+                    
                     div.innerHTML = `
-                        <h3 class="text-xl font-bold text-slate-800 mb-2">${item.idiom}</h3>
-                        <p class="text-slate-700 font-medium whitespace-pre-wrap">${item.meaning}</p>
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">${item.idiom}</h3>
+                            <p class="text-slate-700 font-medium whitespace-pre-wrap">${item.meaning}</p>
+                        </div>
+                        <button onclick="toggleVocab('${item.idiom}')" class="text-3xl transition-colors shrink-0">
+                            <i class="${starIconClass}"></i>
+                        </button>
                     `;
                     reviewContainer.appendChild(div);
                 }
@@ -808,13 +1000,14 @@
             document.getElementById('screen-review').classList.add('hidden');
             
             // Start reinforcement
-            const reviewItems = Array.from(unitFailedIdiomIds).map(id => allIdiomsData.find(i => i.idiom === id)).filter(Boolean);
+            const reviewItems = Array.from(unitFailedIdiomIds).map(id => allIdiomsData.find(i => i.idiom === id) || Array.from(vocabBook.values()).find(i => i.idiom === id)).filter(Boolean);
             currentUnitData = shuffleArray(reviewItems);
             batchIndex = 0;
             failedIdiomIds.clear();
             unitFailedIdiomIds.clear(); // Reset so they don't loop forever
             clearProgress(); // Clear progress for the normal unit since they started reinforcement
             
+            isReinforcementMode = true;
             document.getElementById('current-unit-title').textContent = "強化記憶測驗";
             document.getElementById('screen-game').classList.remove('hidden');
             renderBatch();
@@ -868,7 +1061,18 @@
             document.getElementById('screen-game').classList.add('hidden');
             document.getElementById('screen-menu').classList.remove('hidden');
             clearLines();
+            isReinforcementMode = false;
+            
+            const unitTitle = document.getElementById('current-unit-title').textContent;
+            if (!unitTitle.includes('測驗') && !unitTitle.includes('生詞本')) {
+                if (allReviewBanks[unitTitle] && unitFailedIdiomIds.size === 0) {
+                    delete allReviewBanks[unitTitle];
+                    syncUserData();
+                }
+            }
+
             if (typeof updateStartButtons === 'function') updateStartButtons();
+            if (typeof renderMenuButtons === 'function') renderMenuButtons();
         }
 
         function clearLines() {
