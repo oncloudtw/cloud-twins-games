@@ -330,11 +330,16 @@
                 const failedQuestions = ref(new Set()); // 紀錄當前批次曾經答錯或看解答的題目索引
                 const stageCorrectCount = ref(0); // 當前階段第一次就答對的數量
                 const totalCorrectCount = ref(0); // 整個單元第一次就答對的數量
-                
-                const unitFailedItems = ref(new Map()); // 紀錄整個單元答錯或查過字典的題目物件 (Map by vocab to avoid dupes)
+                const unitFailedItems = ref([]); // 紀錄整個單元答錯或查過字典的題目物件
+
+                const addFailedItem = (item) => {
+                    if (item && !unitFailedItems.value.some(i => i.vocab === item.vocab)) {
+                        unitFailedItems.value.push(item);
+                    }
+                };
 
                 const reviewItems = computed(() => {
-                    return Array.from(unitFailedItems.value.values());
+                    return unitFailedItems.value;
                 });
 
                 // 計算當前批次的題目
@@ -382,7 +387,8 @@
                         currentIndex: currentIndex.value,
                         totalCorrectCount: totalCorrectCount.value,
                         stageCorrectCount: stageCorrectCount.value,
-                        failedQuestions: Array.from(failedQuestions.value)
+                        failedQuestions: Array.from(failedQuestions.value),
+                        unitFailedItems: unitFailedItems.value
                     };
                     localStorage.setItem(`${currentUser}_fillBlankProgress`, JSON.stringify(progress));
                 };
@@ -408,6 +414,7 @@
                             totalCorrectCount.value = parsed.totalCorrectCount;
                             stageCorrectCount.value = parsed.stageCorrectCount;
                             failedQuestions.value = new Set(parsed.failedQuestions);
+                            unitFailedItems.value = parsed.unitFailedItems || [];
                             return true;
                         } catch (e) {
                             clearProgress();
@@ -472,7 +479,7 @@
                     failedQuestions.value = new Set();
                     stageCorrectCount.value = 0;
                     totalCorrectCount.value = 0;
-                    unitFailedItems.value.clear(); // Reset for this reinforcement session
+                    unitFailedItems.value = []; // Reset for this reinforcement session
                     gameState.value = 'playing';
                     batchStartTime.value = Date.now();
                     resetInput();
@@ -702,7 +709,7 @@
                     currentBatchIndex.value = 0;
                     currentIndex.value = 0;
                     failedQuestions.value = new Set();
-                    unitFailedItems.value.clear();
+                    unitFailedItems.value = [];
                     stageCorrectCount.value = 0;
                     totalCorrectCount.value = 0;
                     resetInput();
@@ -755,7 +762,7 @@
                         inputStatus.value = 'incorrect';
                         feedbackMessage.value = '🤔 好像不太對喔，再試試看！';
                         failedQuestions.value.add(currentIndex.value);
-                        unitFailedItems.value.set(currentQuestion.value.vocab, currentQuestion.value);
+                        addFailedItem(currentQuestion.value);
                         saveProgress();
                     }
                 };
@@ -765,13 +772,14 @@
                     inputStatus.value = '';
                     feedbackMessage.value = '💡 解答在這裡！';
                     failedQuestions.value.add(currentIndex.value);
-                    unitFailedItems.value.set(currentQuestion.value.vocab, currentQuestion.value);
+                    addFailedItem(currentQuestion.value);
                     saveProgress();
                 };
 
                 const trackDictClick = (vocab, dictType) => {
                     if (currentQuestion.value && currentQuestion.value.vocab === vocab) {
-                        unitFailedItems.value.set(vocab, currentQuestion.value);
+                        addFailedItem(currentQuestion.value);
+                        saveProgress();
                     }
                     if (window.trackDictClickGlobal) {
                         window.trackDictClickGlobal(vocab, dictType);
