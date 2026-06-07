@@ -330,6 +330,7 @@
                 const failedQuestions = ref(new Set()); // 紀錄當前批次曾經答錯或看解答的題目索引
                 const stageCorrectCount = ref(0); // 當前階段第一次就答對的數量
                 const totalCorrectCount = ref(0); // 整個單元第一次就答對的數量
+                const correctQuestions = ref(new Set()); // 紀錄當前批次答對的題目索引
                 const unitFailedItems = ref([]); // 紀錄整個單元答錯或查過字典的題目物件
 
                 const addFailedItem = (item) => {
@@ -388,6 +389,7 @@
                         totalCorrectCount: totalCorrectCount.value,
                         stageCorrectCount: stageCorrectCount.value,
                         failedQuestions: Array.from(failedQuestions.value),
+                        correctQuestions: Array.from(correctQuestions.value),
                         unitFailedItems: unitFailedItems.value
                     };
                     localStorage.setItem(`${currentUser}_fillBlankProgress`, JSON.stringify(progress));
@@ -414,6 +416,7 @@
                             totalCorrectCount.value = parsed.totalCorrectCount;
                             stageCorrectCount.value = parsed.stageCorrectCount;
                             failedQuestions.value = new Set(parsed.failedQuestions);
+                            correctQuestions.value = new Set(parsed.correctQuestions || []);
                             unitFailedItems.value = parsed.unitFailedItems || [];
                             return true;
                         } catch (e) {
@@ -456,6 +459,7 @@
                         currentIndex.value = 0;
                         stageCorrectCount.value = 0;
                         failedQuestions.value = new Set();
+                        correctQuestions.value = new Set();
                         resetInput();
                         clearProgress();
                     }
@@ -479,6 +483,7 @@
                     failedQuestions.value = new Set();
                     stageCorrectCount.value = 0;
                     totalCorrectCount.value = 0;
+                    correctQuestions.value = new Set();
                     unitFailedItems.value = []; // Reset for this reinforcement session
                     gameState.value = 'playing';
                     batchStartTime.value = Date.now();
@@ -709,6 +714,7 @@
                     currentBatchIndex.value = 0;
                     currentIndex.value = 0;
                     failedQuestions.value = new Set();
+                    correctQuestions.value = new Set();
                     unitFailedItems.value = [];
                     stageCorrectCount.value = 0;
                     totalCorrectCount.value = 0;
@@ -751,6 +757,7 @@
                             stageCorrectCount.value++;
                             totalCorrectCount.value++;
                         }
+                        correctQuestions.value.add(currentIndex.value);
                         
                         saveProgress();
 
@@ -786,7 +793,15 @@
                     }
                 };
 
+                const recordSkipIfNotCorrect = () => {
+                    if (inputStatus.value !== 'correct' && !correctQuestions.value.has(currentIndex.value)) {
+                        failedQuestions.value.add(currentIndex.value);
+                        addFailedItem(currentQuestion.value);
+                    }
+                };
+
                 const nextQuestion = () => {
+                    recordSkipIfNotCorrect();
                     if (currentIndex.value < currentBatchQuestions.value.length - 1) {
                         currentIndex.value++;
                         resetInput();
@@ -814,12 +829,14 @@
                     currentIndex.value = 0;
                     stageCorrectCount.value = 0;
                     failedQuestions.value = new Set();
+                    correctQuestions.value = new Set();
                     resetInput();
                     batchStartTime.value = Date.now();
                     saveProgress();
                 };
 
                 const prevQuestion = () => {
+                    recordSkipIfNotCorrect();
                     if (currentIndex.value > 0) {
                         currentIndex.value--;
                         resetInput();
