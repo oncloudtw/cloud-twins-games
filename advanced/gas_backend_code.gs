@@ -14,6 +14,8 @@ function doPost(e) {
         return saveUserData(data);
       case 'getUserData':
         return getUserData(data);
+      case 'getLeaderboard':
+        return getLeaderboard(data);
       default:
         return ContentService.createTextOutput(JSON.stringify({ 
           status: 'error', 
@@ -160,6 +162,57 @@ function getUserData(data) {
     return ContentService.createTextOutput(JSON.stringify({ 
       status: 'success', 
       data: payload 
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: 'error', 
+      message: e.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 取得排行榜資料
+ * data 格式: { game: '遊戲名稱' }
+ */
+function getLeaderboard(data) {
+  try {
+    var gameName = data.game;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('GameRecords');
+    if (!sheet) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        status: 'success', 
+        data: [] 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var values = sheet.getDataRange().getValues();
+    if (values.length <= 1) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        status: 'success', 
+        data: [] 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var records = [];
+    // Timestamp, Username, Game, Unit, Score, TimeSpent(s), WrongAnswers
+    for (var i = 1; i < values.length; i++) {
+      if (values[i][2] === gameName) {
+        records.push({
+          timestamp: values[i][0],
+          username: values[i][1],
+          unit: values[i][3],
+          score: values[i][4],
+          timeSpent: values[i][5]
+        });
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ 
+      status: 'success', 
+      data: records 
     })).setMimeType(ContentService.MimeType.JSON);
     
   } catch (e) {
