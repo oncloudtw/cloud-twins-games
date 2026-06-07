@@ -331,8 +331,55 @@
                            !showSuccessModal.value;
                 });
 
+                const saveProgress = () => {
+                    const currentUser = window.localStorage.getItem('gameSession');
+                    if (!currentUser || questions.value.length === 0 || gameState.value !== 'playing') return;
+                    const progress = {
+                        unit: currentUnit.value,
+                        questions: questions.value,
+                        batchSize: batchSize.value,
+                        currentBatchIndex: currentBatchIndex.value,
+                        currentIndex: currentIndex.value,
+                        totalCorrectCount: totalCorrectCount.value,
+                        stageCorrectCount: stageCorrectCount.value,
+                        failedQuestions: Array.from(failedQuestions.value)
+                    };
+                    localStorage.setItem(`${currentUser}_fillBlankProgress`, JSON.stringify(progress));
+                };
+
+                const clearProgress = () => {
+                    const currentUser = window.localStorage.getItem('gameSession');
+                    if (!currentUser) return;
+                    localStorage.removeItem(`${currentUser}_fillBlankProgress`);
+                };
+
+                const restoreProgress = () => {
+                    const currentUser = window.localStorage.getItem('gameSession');
+                    if (!currentUser) return false;
+                    const saved = localStorage.getItem(`${currentUser}_fillBlankProgress`);
+                    if (saved) {
+                        try {
+                            const parsed = JSON.parse(saved);
+                            currentUnit.value = parsed.unit;
+                            questions.value = parsed.questions;
+                            batchSize.value = parsed.batchSize;
+                            currentBatchIndex.value = parsed.currentBatchIndex;
+                            currentIndex.value = parsed.currentIndex;
+                            totalCorrectCount.value = parsed.totalCorrectCount;
+                            stageCorrectCount.value = parsed.stageCorrectCount;
+                            failedQuestions.value = new Set(parsed.failedQuestions);
+                            return true;
+                        } catch (e) {
+                            clearProgress();
+                            return false;
+                        }
+                    }
+                    return false;
+                };
+
                 const startGame = () => {
                     if (!currentUnit.value) return;
+                    clearProgress();
                     loadUnitData();
                     gameState.value = 'playing';
                     batchStartTime.value = Date.now();
@@ -356,12 +403,14 @@
                 const doBackToMenu = () => {
                     if (showSuccessModal.value) {
                         questions.value = []; // Reset completely since they finished
+                        clearProgress();
                     } else {
                         // Reset current batch progress
                         currentIndex.value = 0;
                         stageCorrectCount.value = 0;
                         failedQuestions.value = new Set();
                         resetInput();
+                        clearProgress();
                     }
 
                     showConfirmModal.value = false;
@@ -379,6 +428,7 @@
                     resetInput();
                     batchStartTime.value = Date.now();
                     gameState.value = 'menu';
+                    saveProgress();
                 };
 
                 // 提取單元數字以便排序
@@ -552,12 +602,14 @@
                         });
 
                         if (availableUnits.value.length > 0) {
-                            const urlParams = new URLSearchParams(window.location.search);
-                            const unitParam = urlParams.get('unit');
-                            if (unitParam && uniqueUnitsNames.includes(unitParam)) {
-                                currentUnit.value = unitParam;
-                            } else {
-                                currentUnit.value = availableUnits.value[0].name;
+                            if (!restoreProgress()) {
+                                const urlParams = new URLSearchParams(window.location.search);
+                                const unitParam = urlParams.get('unit');
+                                if (unitParam && uniqueUnitsNames.includes(unitParam)) {
+                                    currentUnit.value = unitParam;
+                                } else {
+                                    currentUnit.value = availableUnits.value[0].name;
+                                }
                             }
                         } else {
                             feedbackMessage.value = '試算表中找不到任何「字形」或「字音」的題目資料';
@@ -623,6 +675,8 @@
                             stageCorrectCount.value++;
                             totalCorrectCount.value++;
                         }
+                        
+                        saveProgress();
 
                         // 延遲 0.5 秒後自動換下一題
                         setTimeout(() => {
@@ -632,6 +686,7 @@
                         inputStatus.value = 'incorrect';
                         feedbackMessage.value = '🤔 好像不太對喔，再試試看！';
                         failedQuestions.value.add(currentIndex.value);
+                        saveProgress();
                     }
                 };
 
@@ -640,12 +695,14 @@
                     inputStatus.value = '';
                     feedbackMessage.value = '💡 解答在這裡！';
                     failedQuestions.value.add(currentIndex.value);
+                    saveProgress();
                 };
 
                 const nextQuestion = () => {
                     if (currentIndex.value < currentBatchQuestions.value.length - 1) {
                         currentIndex.value++;
                         resetInput();
+                        saveProgress();
                     } else {
                         inputStatus.value = 'correct';
                         
@@ -658,6 +715,7 @@
                             showStageModal.value = true;
                         } else {
                             showSuccessModal.value = true;
+                            clearProgress();
                         }
                     }
                 };
@@ -670,12 +728,14 @@
                     failedQuestions.value = new Set();
                     resetInput();
                     batchStartTime.value = Date.now();
+                    saveProgress();
                 };
 
                 const prevQuestion = () => {
                     if (currentIndex.value > 0) {
                         currentIndex.value--;
                         resetInput();
+                        saveProgress();
                     }
                 };
 

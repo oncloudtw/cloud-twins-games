@@ -275,6 +275,41 @@
         let failedIdiomIds = new Set();
         let unitFailedIdiomIds = new Set();
 
+        function saveProgress() {
+            if (!currentUser || currentUnitData.length === 0) return;
+            const select = document.getElementById('unit-select');
+            const progress = {
+                unitTitle: select.options[select.selectedIndex]?.text || currentUnitData[0].unit,
+                unitData: currentUnitData,
+                batchIndex: batchIndex,
+                unitFailedIdiomIds: Array.from(unitFailedIdiomIds)
+            };
+            localStorage.setItem(`${currentUser}_matchingProgress`, JSON.stringify(progress));
+        }
+
+        function clearProgress() {
+            if (!currentUser) return;
+            localStorage.removeItem(`${currentUser}_matchingProgress`);
+        }
+
+        function restoreProgress() {
+            if (!currentUser) return false;
+            const saved = localStorage.getItem(`${currentUser}_matchingProgress`);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    currentUnitData = parsed.unitData;
+                    batchIndex = parsed.batchIndex;
+                    unitFailedIdiomIds = new Set(parsed.unitFailedIdiomIds);
+                    return true;
+                } catch (e) {
+                    clearProgress();
+                    return false;
+                }
+            }
+            return false;
+        }
+
         // 初始化
         async function init() {
             await initData();
@@ -405,6 +440,13 @@
             });
 
             select.addEventListener('change', updateStartButtons);
+            
+            if (restoreProgress()) {
+                select.value = currentUnitData[0].unit;
+            } else {
+                select.selectedIndex = 0;
+            }
+            
             updateStartButtons();
         }
 
@@ -454,10 +496,12 @@
             if (!unit) return;
 
             if (isReset) {
+                clearProgress();
                 currentUnitData = shuffleArray(allIdiomsData.filter(item => item.unit === unit));
                 batchIndex = 0;
                 failedIdiomIds.clear();
                 unitFailedIdiomIds.clear();
+                saveProgress();
             }
 
             document.getElementById('current-unit-title').textContent = unit;
@@ -665,6 +709,7 @@
 
         document.getElementById('btn-rest').addEventListener('click', () => {
             batchIndex++;
+            saveProgress();
             document.getElementById('modal-success').classList.add('hidden');
             document.getElementById('modal-success').classList.remove('flex');
             returnToMenu();
@@ -672,6 +717,7 @@
 
         document.getElementById('btn-next-batch').addEventListener('click', () => {
             batchIndex++;
+            saveProgress();
             document.getElementById('modal-success').classList.add('hidden');
             document.getElementById('modal-success').classList.remove('flex');
             renderBatch();
@@ -683,6 +729,7 @@
             // reset progress since unit is fully completed
             currentUnitData = [];
             batchIndex = 0;
+            clearProgress();
             returnToMenu();
         });
 
@@ -695,6 +742,7 @@
             document.getElementById('modal-confirm').classList.remove('flex');
             document.getElementById('modal-success').classList.add('hidden');
             document.getElementById('modal-success').classList.remove('flex');
+            clearProgress();
             returnToMenu();
         });
 
