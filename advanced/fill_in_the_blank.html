@@ -89,10 +89,21 @@
                     <h2 class="text-2xl font-bold text-center text-blue-800 mb-6">選擇挑戰單元</h2>
 
                     <!-- 我的生詞本入口 -->
-                    <button v-if="vocabBookList.length > 0" @click="startVocabReview()" class="w-full mb-6 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-4 rounded-xl text-xl shadow-lg hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2">
-                        <i class="ph-fill ph-star"></i>
-                        <span>⭐ 我的生詞本 ({{ vocabBookList.length }} 字)</span>
-                    </button>
+                    <div v-if="vocabBookList.length > 0" class="w-full mb-6 bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-yellow-800 flex items-center gap-2">
+                                ⭐ 我的生詞本 (總共 {{ vocabBookList.length }} 字)
+                            </h3>
+                            <button @click="startVocabReview()" class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-1.5 px-4 rounded-lg text-sm shadow-sm transition-colors">
+                                全部複習
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button v-for="unitName in vocabBookUnits" :key="unitName" @click="startVocabReview(unitName)" class="bg-white border border-yellow-300 hover:bg-yellow-100 text-yellow-800 text-xs font-bold py-1.5 px-3 rounded-full transition-colors shadow-sm">
+                                {{ unitName }} ({{ getVocabCountByUnit(unitName) }})
+                            </button>
+                        </div>
+                    </div>
 
                 <div class="space-y-6">
                     <div class="space-y-2">
@@ -371,6 +382,28 @@
                 };
 
                 const vocabBookList = computed(() => Array.from(vocabBook.value.values()));
+
+                const vocabBookUnits = computed(() => {
+                    const units = new Set();
+                    vocabBook.value.forEach(item => {
+                        if (item.unit) units.add(item.unit);
+                    });
+                    return Array.from(units).sort((a, b) => {
+                        const getNum = (s) => {
+                            const match = s.match(/\d+/);
+                            return match ? parseInt(match[0], 10) : 999;
+                        };
+                        return getNum(a) - getNum(b);
+                    });
+                });
+
+                const getVocabCountByUnit = (unit) => {
+                    let count = 0;
+                    vocabBook.value.forEach(item => {
+                        if (item.unit === unit) count++;
+                    });
+                    return count;
+                };
 
                 const hasReviewBankForCurrentUnit = computed(() => {
                     return allReviewBanks.value[currentUnit.value] && allReviewBanks.value[currentUnit.value].length > 0;
@@ -1057,7 +1090,9 @@
                     hasReviewBankForCurrentUnit,
                     startReviewFromMenu,
                     startVocabReview,
-                    allReviewBanks
+                    allReviewBanks,
+                    vocabBookUnits,
+                    getVocabCountByUnit
                 };
             }
         }).mount('#app');

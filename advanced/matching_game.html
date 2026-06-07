@@ -130,10 +130,19 @@
 
                     <div class="space-y-4">
                         <!-- 我的生詞本入口 -->
-                        <button id="btn-vocab-book" class="hidden w-full mb-6 bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-4 rounded-xl text-xl shadow-lg hover:-translate-y-1 transition-all duration-200 justify-center items-center gap-2">
-                            <i class="ph-fill ph-star"></i>
-                            <span id="vocab-book-text">⭐ 我的生詞本</span>
-                        </button>
+                        <div id="vocab-book-container" class="hidden w-full mb-6 bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 id="vocab-book-title" class="font-bold text-yellow-800 flex items-center gap-2">
+                                    <i class="ph-fill ph-star"></i> ⭐ 我的生詞本
+                                </h3>
+                                <button id="btn-vocab-book-all" class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-1.5 px-4 rounded-lg text-sm shadow-sm transition-colors">
+                                    全部複習
+                                </button>
+                            </div>
+                            <div id="vocab-book-units" class="flex flex-wrap gap-2">
+                                <!-- JS 動態生成單元按鈕 -->
+                            </div>
+                        </div>
 
                         <div>
                             <label class="block text-sm font-bold text-emerald-700 mb-2">請選擇：</label>
@@ -577,14 +586,41 @@
 
         function renderMenuButtons() {
             const vocabList = Array.from(vocabBook.values());
-            const btnVocab = document.getElementById('btn-vocab-book');
+            const container = document.getElementById('vocab-book-container');
             if (vocabList.length > 0) {
-                btnVocab.classList.remove('hidden');
-                btnVocab.classList.add('flex');
-                document.getElementById('vocab-book-text').textContent = `⭐ 我的生詞本 (${vocabList.length} 字)`;
+                container.classList.remove('hidden');
+                document.getElementById('vocab-book-title').innerHTML = `<i class="ph-fill ph-star"></i> ⭐ 我的生詞本 (總共 ${vocabList.length} 字)`;
+                
+                const unitsMap = new Map();
+                vocabList.forEach(item => {
+                    if (item.unit) {
+                        unitsMap.set(item.unit, (unitsMap.get(item.unit) || 0) + 1);
+                    }
+                });
+                
+                const unitsDiv = document.getElementById('vocab-book-units');
+                unitsDiv.innerHTML = '';
+                
+                const getNum = (s) => {
+                    const match = s.match(/\d+/);
+                    return match ? parseInt(match[0], 10) : 999;
+                };
+                
+                Array.from(unitsMap.keys()).sort((a,b) => getNum(a) - getNum(b)).forEach(unit => {
+                    const btn = document.createElement('button');
+                    btn.className = 'bg-white border border-yellow-300 hover:bg-yellow-100 text-yellow-800 text-xs font-bold py-1.5 px-3 rounded-full transition-colors shadow-sm';
+                    btn.textContent = `${unit} (${unitsMap.get(unit)})`;
+                    btn.onclick = () => {
+                        const items = vocabList.filter(i => i.unit === unit);
+                        unitFailedIdiomIds.clear();
+                        items.forEach(i => unitFailedIdiomIds.add(i.idiom));
+                        document.getElementById('current-unit-title').textContent = `${unit} 生詞本`;
+                        showReviewScreen();
+                    };
+                    unitsDiv.appendChild(btn);
+                });
             } else {
-                btnVocab.classList.add('hidden');
-                btnVocab.classList.remove('flex');
+                container.classList.add('hidden');
             }
 
             const currentUnit = document.getElementById('unit-select').value;
@@ -676,7 +712,7 @@
         document.getElementById('btn-restart').addEventListener('click', () => startGameAction(true));
         document.getElementById('btn-resume').addEventListener('click', () => startGameAction(false));
 
-        document.getElementById('btn-vocab-book').addEventListener('click', () => {
+        document.getElementById('btn-vocab-book-all').addEventListener('click', () => {
             const items = Array.from(vocabBook.values());
             if (items.length === 0) return;
             
