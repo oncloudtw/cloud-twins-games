@@ -338,19 +338,23 @@
                     </button>
                 </div>
                 
-                <div class="mb-6 flex gap-4 items-center">
-                    <label class="font-bold text-slate-700 whitespace-nowrap">選擇單元：</label>
-                    <select v-model="leaderboardUnit" class="flex-1 px-4 py-2 rounded-xl border-2 border-indigo-200 focus:border-indigo-500 font-medium text-slate-700">
-                        <option value="all">所有單元 (綜合)</option>
-                        <option v-for="unitObj in availableUnits" :value="unitObj.name">{{ unitObj.name }}</option>
-                    </select>
+                <div class="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+                    <div class="flex items-center gap-2 flex-1">
+                        <label class="font-bold text-slate-700 whitespace-nowrap">選擇單元：</label>
+                        <select v-model="leaderboardUnit" class="flex-1 px-4 py-2 rounded-xl border-2 border-indigo-200 focus:border-indigo-500 font-medium text-slate-700 w-full max-w-full">
+                            <option value="all">所有單元 (綜合)</option>
+                            <option v-for="unitObj in availableUnits" :value="unitObj.name">{{ unitObj.name }}</option>
+                        </select>
+                    </div>
                     
-                    <label class="font-bold text-slate-700 whitespace-nowrap ml-2">模式：</label>
-                    <select v-model="leaderboardMode" class="px-4 py-2 rounded-xl border-2 border-indigo-200 focus:border-indigo-500 font-medium text-slate-700">
-                        <option value="trueHero">真英雄榜</option>
-                        <option value="sprint20">20題挑戰</option>
-                        <option value="survival">限時生存</option>
-                    </select>
+                    <div class="flex items-center gap-2">
+                        <label class="font-bold text-slate-700 whitespace-nowrap">模式：</label>
+                        <select v-model="leaderboardMode" class="flex-1 px-4 py-2 rounded-xl border-2 border-indigo-200 focus:border-indigo-500 font-medium text-slate-700 w-full max-w-full">
+                            <option value="trueHero">真英雄榜</option>
+                            <option value="sprint20">20題挑戰</option>
+                            <option value="survival">限時生存</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <div class="flex-1 overflow-y-auto bg-slate-50 rounded-2xl border border-slate-200">
