@@ -338,7 +338,8 @@
                                     <th class="py-3 px-4 font-bold">挑戰者</th>
                                     <th class="py-3 px-4 font-bold">單元</th>
                                     <th class="py-3 px-4 font-bold">得分</th>
-                                    <th class="py-3 px-4 rounded-tr-2xl font-bold">耗時</th>
+                                    <th class="py-3 px-4 font-bold">耗時</th>
+                                    <th class="py-3 px-4 rounded-tr-2xl font-bold">紀錄時間</th>
                                 </tr>
                             </thead>
                             <tbody id="leaderboard-body">
@@ -1265,7 +1266,7 @@
         function fetchLeaderboard(retryCount = 3) {
             if (!GAS_API_URL) return;
             const tbody = document.getElementById('leaderboard-body');
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-500 font-medium"><i class="ph-bold ph-spinner animate-spin text-2xl mb-2"></i><br>載入中...</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-500 font-medium"><i class="ph-bold ph-spinner animate-spin text-2xl mb-2"></i><br>載入中...</td></tr>`;
             
             fetch(GAS_API_URL, {
                 method: 'POST',
@@ -1276,12 +1277,12 @@
                     renderLeaderboard();
                 } else {
                     if (retryCount > 0) { setTimeout(() => fetchLeaderboard(retryCount - 1), 1000); }
-                    else { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`; }
+                    else { tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`; }
                 }
             }).catch(e => {
                 console.error(e);
                 if (retryCount > 0) { setTimeout(() => fetchLeaderboard(retryCount - 1), 1000); }
-                else { tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`; }
+                else { tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`; }
             });
         }
 
@@ -1302,7 +1303,7 @@
             data = data.slice(0, 10);
             
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-slate-500 font-medium">目前還沒有紀錄喔！成為第一個上榜的人吧！</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-500 font-medium">目前還沒有紀錄喔！成為第一個上榜的人吧！</td></tr>`;
                 return;
             }
             
@@ -1322,6 +1323,7 @@
                     <td class="py-3 px-4 text-sm text-slate-600">${record.unit}</td>
                     <td class="py-3 px-4 font-bold text-emerald-600">${record.score}分</td>
                     <td class="py-3 px-4 font-medium text-blue-600">${Number(record.timeSpent).toFixed(2)}秒</td>
+                    <td class="py-3 px-4 text-xs text-slate-400">${new Date(record.timestamp).toLocaleString('zh-TW', {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false})}</td>
                 `;
                 tbody.appendChild(tr);
             });
