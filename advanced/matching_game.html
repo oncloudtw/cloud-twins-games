@@ -538,6 +538,7 @@
                 for (let i = 1; i <= 20; i++) {
                     sheetNamesToTry.push(i.toString());
                     sheetNamesToTry.push(`第${chineseMap[i - 1]}單元`);
+                    sheetNamesToTry.push(`第${i}單元`);
                 }
 
                 const promises = sheetNamesToTry.map(name => {
