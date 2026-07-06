@@ -604,10 +604,10 @@
                     if (!GAS_API_URL || !window.currentUser) return;
                     
                     try {
-                        const localReview = localStorage.getItem(`${window.currentUser}_fillBlankReviewBank`);
+                        const localReview = localStorage.getItem(`${window.currentUser}_englishVocabReviewBank`);
                         if (localReview) allReviewBanks.value = JSON.parse(localReview);
                         
-                        const localVocab = localStorage.getItem(`${window.currentUser}_fillBlankVocabBook`);
+                        const localVocab = localStorage.getItem(`${window.currentUser}_englishVocabVocabBook`);
                         if (localVocab) {
                             const arr = JSON.parse(localVocab);
                             arr.forEach(item => vocabBook.value.set(item.vocab, item));
@@ -619,14 +619,14 @@
                         body: JSON.stringify({ action: 'getUserData', data: { username: window.currentUser } })
                     }).then(res => res.json()).then(res => {
                         if (res.status === 'success' && res.data) {
-                            if (res.data.fillBlankReviewBank) {
-                                allReviewBanks.value = res.data.fillBlankReviewBank;
-                                localStorage.setItem(`${window.currentUser}_fillBlankReviewBank`, JSON.stringify(allReviewBanks.value));
+                            if (res.data.englishVocabReviewBank) {
+                                allReviewBanks.value = res.data.englishVocabReviewBank;
+                                localStorage.setItem(`${window.currentUser}_englishVocabReviewBank`, JSON.stringify(allReviewBanks.value));
                             }
-                            if (res.data.fillBlankVocabBook) {
+                            if (res.data.englishVocabVocabBook) {
                                 vocabBook.value.clear();
-                                res.data.fillBlankVocabBook.forEach(item => vocabBook.value.set(item.vocab, item));
-                                localStorage.setItem(`${window.currentUser}_fillBlankVocabBook`, JSON.stringify(res.data.fillBlankVocabBook));
+                                res.data.englishVocabVocabBook.forEach(item => vocabBook.value.set(item.vocab, item));
+                                localStorage.setItem(`${window.currentUser}_englishVocabVocabBook`, JSON.stringify(res.data.englishVocabVocabBook));
                             }
                         }
                     }).catch(e => console.error(e));
@@ -638,8 +638,8 @@
                     const reviewData = allReviewBanks.value;
                     const vocabData = Array.from(vocabBook.value.values());
                     
-                    localStorage.setItem(`${window.currentUser}_fillBlankReviewBank`, JSON.stringify(reviewData));
-                    localStorage.setItem(`${window.currentUser}_fillBlankVocabBook`, JSON.stringify(vocabData));
+                    localStorage.setItem(`${window.currentUser}_englishVocabReviewBank`, JSON.stringify(reviewData));
+                    localStorage.setItem(`${window.currentUser}_englishVocabVocabBook`, JSON.stringify(vocabData));
                     
                     fetch(GAS_API_URL, {
                         method: 'POST',
@@ -648,8 +648,8 @@
                             data: {
                                 username: window.currentUser,
                                 payload: {
-                                    fillBlankReviewBank: reviewData,
-                                    fillBlankVocabBook: vocabData
+                                    englishVocabReviewBank: reviewData,
+                                    englishVocabVocabBook: vocabData
                                 }
                             }
                         })
@@ -715,19 +715,19 @@
                         correctQuestions: Array.from(correctQuestions.value),
                         unitFailedItems: unitFailedItems.value
                     };
-                    localStorage.setItem(`${currentUser}_fillBlankProgress`, JSON.stringify(progress));
+                    localStorage.setItem(`${currentUser}_englishVocabProgress`, JSON.stringify(progress));
                 };
 
                 const clearProgress = () => {
                     const currentUser = window.localStorage.getItem('gameSession');
                     if (!currentUser) return;
-                    localStorage.removeItem(`${currentUser}_fillBlankProgress`);
+                    localStorage.removeItem(`${currentUser}_englishVocabProgress`);
                 };
 
                 const restoreProgress = () => {
                     const currentUser = window.localStorage.getItem('gameSession');
                     if (!currentUser) return false;
-                    const saved = localStorage.getItem(`${currentUser}_fillBlankProgress`);
+                    const saved = localStorage.getItem(`${currentUser}_englishVocabProgress`);
                     if (saved) {
                         try {
                             const parsed = JSON.parse(saved);
