@@ -437,6 +437,7 @@
 
     <!-- 保持原本的腳本 -->
     <script>
+        window.currentUser = localStorage.getItem('gameSession');
         const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
 
         // 這裡是您的試算表 ID
@@ -1218,8 +1219,6 @@
         }).mount('#app');
 
         // =================== 全域 Vanilla JS 登入與追蹤邏輯 ===================
-        window.currentUser = localStorage.getItem('gameSession');
-
         window.trackDictClickGlobal = function(word, dictType) {
             if (!GAS_API_URL) return;
             fetch(GAS_API_URL, {
