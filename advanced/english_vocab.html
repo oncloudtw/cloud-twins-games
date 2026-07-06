@@ -758,10 +758,7 @@
                 const startGame = () => {
                     if (!startRange.value || !endRange.value) return;
                     
-                    if (allReviewBanks.value[currentUnit.value]) {
-                        delete allReviewBanks.value[currentUnit.value];
-                        syncUserData();
-                    }
+
                     
                     isReinforcementMode.value = false;
                     clearProgress();
