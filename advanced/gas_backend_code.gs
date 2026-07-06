@@ -126,8 +126,19 @@ function saveUserData(data) {
     }
     
     if (rowIndex > -1) {
-      // 更新現有資料
-      sheet.getRange(rowIndex, 2).setValue(payloadStr);
+      // 更新現有資料 (合併 Payload)
+      var existingStr = sheet.getRange(rowIndex, 2).getValue();
+      var existingPayload = {};
+      if (existingStr) {
+        try {
+          existingPayload = JSON.parse(existingStr);
+        } catch(e) {}
+      }
+      // 合併
+      for (var key in data.payload) {
+        existingPayload[key] = data.payload[key];
+      }
+      sheet.getRange(rowIndex, 2).setValue(JSON.stringify(existingPayload));
       sheet.getRange(rowIndex, 3).setValue(timestamp);
     } else {
       // 找不到該使用者，新增一列

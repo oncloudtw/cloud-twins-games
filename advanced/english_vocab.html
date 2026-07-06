@@ -624,9 +624,13 @@
                                 localStorage.setItem(`${window.currentUser}_englishVocabReviewBank`, JSON.stringify(allReviewBanks.value));
                             }
                             if (res.data.englishVocabVocabBook) {
-                                vocabBook.value.clear();
-                                res.data.englishVocabVocabBook.forEach(item => vocabBook.value.set(item.vocab, item));
-                                localStorage.setItem(`${window.currentUser}_englishVocabVocabBook`, JSON.stringify(res.data.englishVocabVocabBook));
+                                // 不清空本地，而是與伺服器資料合併，避免伺服器寫入失敗覆蓋本地
+                                res.data.englishVocabVocabBook.forEach(item => {
+                                    if (!vocabBook.value.has(item.vocab)) {
+                                        vocabBook.value.set(item.vocab, item);
+                                    }
+                                });
+                                localStorage.setItem(`${window.currentUser}_englishVocabVocabBook`, JSON.stringify(Array.from(vocabBook.value.values())));
                             }
                         }
                     }).catch(e => console.error(e));
