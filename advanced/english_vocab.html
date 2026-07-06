@@ -1218,7 +1218,7 @@
         }).mount('#app');
 
         // =================== 全域 Vanilla JS 登入與追蹤邏輯 ===================
-        window.currentUser = null;
+        window.currentUser = localStorage.getItem('gameSession');
 
         window.trackDictClickGlobal = function(word, dictType) {
             if (!GAS_API_URL) return;

@@ -624,9 +624,12 @@
                                 localStorage.setItem(`${window.currentUser}_fillBlankReviewBank`, JSON.stringify(allReviewBanks.value));
                             }
                             if (res.data.fillBlankVocabBook) {
-                                vocabBook.value.clear();
-                                res.data.fillBlankVocabBook.forEach(item => vocabBook.value.set(item.vocab, item));
-                                localStorage.setItem(`${window.currentUser}_fillBlankVocabBook`, JSON.stringify(res.data.fillBlankVocabBook));
+                                res.data.fillBlankVocabBook.forEach(item => {
+                                    if (!vocabBook.value.has(item.vocab)) {
+                                        vocabBook.value.set(item.vocab, item);
+                                    }
+                                });
+                                localStorage.setItem(`${window.currentUser}_fillBlankVocabBook`, JSON.stringify(Array.from(vocabBook.value.values())));
                             }
                         }
                     }).catch(e => console.error(e));
@@ -1351,7 +1354,7 @@
         }).mount('#app');
 
         // =================== 全域 Vanilla JS 登入與追蹤邏輯 ===================
-        window.currentUser = null;
+        window.currentUser = localStorage.getItem('gameSession');
 
         window.trackDictClickGlobal = function(word, dictType) {
             if (!GAS_API_URL) return;
