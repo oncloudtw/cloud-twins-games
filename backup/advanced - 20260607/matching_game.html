@@ -1,0 +1,1394 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方寸語文：成語連連看</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        }
+
+        /* 答錯時的震動動畫 */
+        @keyframes shake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            25% {
+                transform: translateX(-5px) rotate(-1deg);
+            }
+
+            50% {
+                transform: translateX(5px) rotate(1deg);
+            }
+
+            75% {
+                transform: translateX(-5px) rotate(-1deg);
+            }
+        }
+
+        .shake-animation {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* 出現時的動畫 */
+        @keyframes popIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.9) translateY(10px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* 繪製連線的 SVG 容器設定 */
+        #svg-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .path-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawLine 0.5s ease-out forwards;
+        }
+
+        @keyframes drawLine {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* 隱藏捲軸但可捲動 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800">
+
+    <div class="w-full h-full max-w-4xl mx-auto flex flex-col overflow-hidden relative md:py-4 md:px-4">
+
+        <!-- Header -->
+        <header class="text-center mb-4 md:mb-6 w-full flex-shrink-0 pop-in pt-4 md:pt-0 relative">
+            <div id="user-greeting" class="absolute right-0 top-0 text-sm font-bold text-slate-500 bg-white/80 px-3 py-2 rounded-xl shadow-sm hidden flex-col items-end gap-1 z-50">
+                <div>Hi, <span id="user-greeting-name"></span></div>
+                <button id="btn-logout" class="text-xs text-slate-400 hover:text-slate-600 underline">返回大廳</button>
+            </div>
+            <h1
+                class="text-3xl md:text-4xl font-black text-emerald-600 mb-2 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
+                <i class="ph-fill ph-puzzle-piece"></i> 成語連連看
+            </h1>
+            <p class="text-emerald-700/80 font-medium text-sm md:text-base">看懂成語，輕鬆配對！將左邊的成語連到右邊正確的解釋。</p>
+        </header>
+
+        <!-- 遊戲主要容器 -->
+        <main
+            class="w-full flex-1 bg-white/90 backdrop-blur-md md:rounded-3xl shadow-xl border border-emerald-100 overflow-hidden relative flex flex-col pop-in">
+
+            <!-- =================== 畫面一：設定與選單 =================== -->
+            <div id="screen-menu" class="flex-1 overflow-y-auto flex flex-col p-4 md:p-8">
+
+                <div
+                    class="mx-auto mt-8 md:mt-12 mb-auto bg-emerald-50 rounded-2xl p-6 md:p-10 w-full max-w-md shadow-inner border border-emerald-100">
+                    <h2 class="text-2xl font-bold text-center text-emerald-800 mb-6">選擇挑戰單元</h2>
+
+                    <div class="space-y-4">
+                        <!-- 我的生詞本入口 -->
+                        <div id="vocab-book-container" class="hidden w-full mb-6 bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 id="vocab-book-title" class="font-bold text-yellow-800 flex items-center gap-2">
+                                    <i class="ph-fill ph-star"></i> ⭐ 我的生詞本
+                                </h3>
+                                <button id="btn-vocab-book-all" class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-1.5 px-4 rounded-lg text-sm shadow-sm transition-colors">
+                                    全部複習
+                                </button>
+                            </div>
+                            <div id="vocab-book-units" class="flex flex-wrap gap-2">
+                                <!-- JS 動態生成單元按鈕 -->
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-emerald-700 mb-2">請選擇：</label>
+                            <select id="unit-select"
+                                class="w-full px-4 py-3 rounded-xl border-2 border-emerald-200 bg-white text-lg focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer font-medium text-slate-700">
+                                <option disabled selected>正在掃描題庫中...</option>
+                            </select>
+                            <div id="review-menu-container" class="hidden mt-2 text-right">
+                                <button id="btn-review-menu" class="text-amber-600 hover:text-amber-700 font-bold text-sm flex items-center justify-end gap-1 w-full mt-1 transition-colors">
+                                    <i class="ph-bold ph-book-open"></i> 📜 複習本單元錯題
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="start-buttons-container" class="flex flex-col gap-4">
+                            <div id="start-buttons" class="hidden gap-4">
+                                <button id="btn-resume" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-xl text-lg md:text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2">
+                                    <i class="ph-bold ph-play"></i>
+                                    <span id="resume-text">繼續第 X 關</span>
+                                </button>
+                                <button id="btn-restart" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-4 rounded-xl text-sm md:text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2">
+                                    <i class="ph-bold ph-arrow-counter-clockwise"></i>
+                                    <span>重新開始</span>
+                                </button>
+                            </div>
+                            <div id="initial-start-buttons" class="flex gap-4 w-full">
+                                <button id="btn-start" disabled
+                                    class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 opacity-50 cursor-not-allowed">
+                                    <i class="ph-bold ph-spinner animate-spin" id="start-icon"></i> <span id="start-text">載入中...</span>
+                                </button>
+                                <button id="btn-leaderboard" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-6 rounded-xl text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 shrink-0">
+                                    <i class="ph-bold ph-trophy"></i> 英雄榜
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="mt-6 text-sm text-slate-500 text-center">
+                    系統會自動掃描試算表中所有工作表的「單元」欄位。
+                </p>
+            </div>
+
+
+
+            <!-- =================== 畫面二：遊戲區 =================== -->
+            <div id="screen-game" class="hidden flex-1 flex flex-col relative overflow-hidden">
+
+                <!-- 遊戲區標頭 -->
+                <div
+                    class="bg-emerald-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
+                    <button id="btn-back"
+                        class="flex items-center gap-1 font-bold text-emerald-100 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20">
+                        <i class="ph-bold ph-arrow-left"></i> 返回
+                    </button>
+                    <h2 id="current-unit-title" class="text-xl font-black tracking-wide">第二單元</h2>
+                    <div class="flex items-center gap-2 md:gap-4">
+                        <button id="btn-toggle-dict" class="flex items-center gap-1 font-bold text-emerald-100 hover:text-white transition-colors bg-white/10 px-2 md:px-3 py-1 md:py-1.5 rounded-lg hover:bg-white/20 text-xs md:text-sm" title="切換字典按鈕位置">
+                            <i class="ph-bold ph-arrows-left-right"></i> <span class="hidden md:inline">字典位置</span>
+                        </button>
+                        <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm">
+                            進度: <span id="progress-text">0/0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 提示訊息 -->
+                <div id="toast-message"
+                    class="absolute top-20 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white px-6 py-2 rounded-full font-bold shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50 text-sm">
+                    配對成功！
+                </div>
+
+                <!-- 遊戲面板 (含左右兩欄) -->
+                <div id="game-board" class="flex-1 p-4 md:p-8 md:pt-12 relative overflow-hidden flex flex-col justify-start">
+
+                    <!-- SVG 用於畫連線 -->
+                    <svg id="svg-layer"></svg>
+
+                    <div class="flex justify-between max-w-4xl w-full mx-auto relative z-20 gap-4 md:gap-12">
+
+                        <!-- 左欄：成語 -->
+                        <div class="w-1/2 md:w-5/12 flex flex-col gap-3 md:gap-4 justify-center" id="col-idioms">
+                            <!-- JS 動態生成 -->
+                        </div>
+
+                        <!-- 右欄：解釋 -->
+                        <div class="w-1/2 md:w-7/12 flex flex-col gap-3 md:gap-4 justify-center" id="col-meanings">
+                            <!-- JS 動態生成 -->
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 過關蓋板 -->
+                <div id="modal-success"
+                    class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 hidden flex-col justify-start pt-24 md:pt-32 items-center p-6 text-center">
+                    <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-star"></i></div>
+                    <h2 class="text-3xl font-black text-emerald-700 mb-2">太棒了！完全正確！</h2>
+                    <p id="success-desc" class="text-slate-600 font-medium mb-4">您已經完成本回合的配對。</p>
+                    <div id="score-text"
+                        class="text-xl text-emerald-800 font-bold mb-6 hidden bg-emerald-100 py-2 px-6 rounded-full border-2 border-emerald-300">
+                    </div>
+                    <div class="flex gap-4">
+                        <button id="btn-rest"
+                            class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 md:px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                            先休息 <i class="ph-bold ph-house"></i>
+                        </button>
+                        <button id="btn-next-batch"
+                            class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-6 md:px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                            下一關 <i class="ph-bold ph-arrow-right"></i>
+                        </button>
+                        <button id="btn-review-unit"
+                            class="hidden bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:-translate-y-1 transition-all flex items-center gap-2">
+                            專屬錯題講義 <i class="ph-bold ph-book-open"></i>
+                        </button>
+                        <button id="btn-finish-unit"
+                            class="hidden bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                            回單元選單 <i class="ph-bold ph-list"></i>
+                        </button>
+                        <button id="btn-show-leaderboard"
+                            class="hidden bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all flex items-center gap-2">
+                            <i class="ph-bold ph-trophy"></i> 查看英雄榜
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 確認返回蓋板 -->
+                <div id="modal-confirm"
+                    class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex-col justify-start pt-24 md:pt-32 items-center p-6 text-center">
+                    <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
+                        <div class="text-5xl text-rose-500 mb-4"><i class="ph-fill ph-warning-circle"></i></div>
+                        <h2 class="text-2xl font-bold text-slate-800 mb-2">確定要返回嗎？</h2>
+                        <p class="text-slate-600 mb-8">目前的遊戲進度將會重置。</p>
+                        <div class="flex gap-4 justify-center">
+                            <button id="btn-confirm-cancel"
+                                class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded-xl transition-all">取消</button>
+                            <button id="btn-confirm-yes"
+                                class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-6 rounded-xl transition-all">確定返回</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- =================== 畫面三：專屬錯題講義 =================== -->
+            <div id="screen-review" class="hidden flex-1 overflow-y-auto flex flex-col p-4 md:p-8 items-center">
+                <div class="w-full max-w-3xl bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-10 shadow-xl border-2 border-amber-200 relative pop-in">
+                    <h2 class="text-3xl font-black text-center text-amber-600 mb-2">
+                        <i class="ph-fill ph-book-open"></i> 專屬錯題講義
+                    </h2>
+                    <p class="text-center text-slate-500 mb-8 font-medium">針對您剛才答錯或查過字典的成語，為您重點複習！</p>
+
+                    <div id="review-list" class="space-y-6 mb-8">
+                        <!-- JS 動態生成 -->
+                    </div>
+
+                    <div class="flex justify-center gap-4">
+                        <button id="btn-review-back" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl transition-all">
+                            回主選單 <i class="ph-bold ph-house"></i>
+                        </button>
+                        <button id="btn-reinforce" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all flex items-center gap-2">
+                            強化記憶測驗 <i class="ph-bold ph-sword"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- =================== Modal: 排行榜 =================== -->
+            <div id="modal-leaderboard" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex-col justify-start pt-16 items-center p-6 text-center rounded-3xl">
+                <div class="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl pop-in flex flex-col max-h-[80vh]">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-3xl font-black text-indigo-700 flex items-center gap-2">
+                            <i class="ph-fill ph-trophy"></i> 英雄榜
+                        </h2>
+                        <button id="btn-close-leaderboard" class="text-slate-400 hover:text-slate-600 text-3xl transition-colors">
+                            <i class="ph-bold ph-x"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-6 flex gap-4 items-center">
+                        <label class="font-bold text-slate-700 whitespace-nowrap">選擇單元：</label>
+                        <select id="leaderboard-unit-select" class="flex-1 px-4 py-2 rounded-xl border-2 border-indigo-200 focus:border-indigo-500 font-medium text-slate-700">
+                            <option value="all">所有單元 (綜合)</option>
+                            <!-- JS 動態生成 -->
+                        </select>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto bg-slate-50 rounded-2xl border border-slate-200">
+                        <table class="w-full text-left">
+                            <thead class="bg-indigo-100 text-indigo-800 sticky top-0 z-10">
+                                <tr>
+                                    <th class="py-3 px-4 rounded-tl-2xl font-bold">排名</th>
+                                    <th class="py-3 px-4 font-bold">挑戰者</th>
+                                    <th class="py-3 px-4 font-bold">單元</th>
+                                    <th class="py-3 px-4 font-bold">得分</th>
+                                    <th class="py-3 px-4 font-bold">耗時</th>
+                                    <th class="py-3 px-4 rounded-tr-2xl font-bold">紀錄時間</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                                <!-- JS 動態生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const SHEET_ID = '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo';
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzEx9q1G45YmJqwuo4GMa77zzfHsaxrcq03woKK8HgQj6xhm9duqFB26cjlW0hdOFN_cw/exec';
+
+        let allIdiomsData = [];
+        let unitsList = [];
+        let currentUser = null;
+        let dictPosition = localStorage.getItem('dictPosition') || 'left';
+        let batchStartTime = 0;
+        let currentUnitData = [];
+        let currentBatch = [];
+        let batchIndex = 0;
+        const BATCH_SIZE = 5;
+        let selectedIdiom = null;
+        let selectedMeaning = null;
+        let matchedPairs = [];
+        let failedIdiomIds = new Set();
+        let unitFailedIdiomIds = new Set();
+        
+        let isReinforcementMode = false;
+        let reviewModeBatch = [];
+        let vocabBook = new Map();
+        let allReviewBanks = {};
+        let unitTotalTime = 0;
+        
+        let leaderboardDataCache = [];
+
+        function saveProgress() {
+            if (!currentUser || currentUnitData.length === 0) return;
+            const select = document.getElementById('unit-select');
+            const progress = {
+                unitTitle: select.options[select.selectedIndex]?.text || currentUnitData[0].unit,
+                unitData: currentUnitData,
+                batchIndex: batchIndex,
+                unitFailedIdiomIds: Array.from(unitFailedIdiomIds)
+            };
+            localStorage.setItem(`${currentUser}_matchingProgress`, JSON.stringify(progress));
+        }
+
+        function clearProgress() {
+            if (!currentUser) return;
+            localStorage.removeItem(`${currentUser}_matchingProgress`);
+        }
+
+        function restoreProgress() {
+            if (!currentUser) return false;
+            const saved = localStorage.getItem(`${currentUser}_matchingProgress`);
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    currentUnitData = parsed.unitData;
+                    batchIndex = parsed.batchIndex;
+                    unitFailedIdiomIds = new Set(parsed.unitFailedIdiomIds);
+                    return true;
+                } catch (e) {
+                    clearProgress();
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        // 初始化
+        async function init() {
+            await initData();
+            await fetchUserData();
+        }
+
+        async function fetchUserData() {
+            if (!GAS_API_URL || !currentUser) return;
+            try {
+                const localReview = localStorage.getItem(`${currentUser}_matchingReviewBank`);
+                if (localReview) allReviewBanks = JSON.parse(localReview);
+                
+                const localVocab = localStorage.getItem(`${currentUser}_matchingVocabBook`);
+                if (localVocab) {
+                    const arr = JSON.parse(localVocab);
+                    arr.forEach(item => vocabBook.set(item.idiom, item));
+                }
+            } catch(e) {}
+            
+            if (typeof renderMenuButtons === 'function') renderMenuButtons();
+
+            try {
+                const res = await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'getUserData', data: { username: currentUser } })
+                });
+                const json = await res.json();
+                if (json.status === 'success' && json.data) {
+                    if (json.data.matchingReviewBank) {
+                        allReviewBanks = json.data.matchingReviewBank;
+                        localStorage.setItem(`${currentUser}_matchingReviewBank`, JSON.stringify(allReviewBanks));
+                    }
+                    if (json.data.matchingVocabBook) {
+                        vocabBook.clear();
+                        json.data.matchingVocabBook.forEach(item => vocabBook.set(item.idiom, item));
+                        localStorage.setItem(`${currentUser}_matchingVocabBook`, JSON.stringify(json.data.matchingVocabBook));
+                    }
+                    if (typeof renderMenuButtons === 'function') renderMenuButtons();
+                }
+            } catch (e) { console.error('fetchUserData err', e); }
+        }
+
+        function syncUserData() {
+            if (!GAS_API_URL || !currentUser) return;
+            const reviewData = allReviewBanks;
+            const vocabData = Array.from(vocabBook.values());
+            
+            localStorage.setItem(`${currentUser}_matchingReviewBank`, JSON.stringify(reviewData));
+            localStorage.setItem(`${currentUser}_matchingVocabBook`, JSON.stringify(vocabData));
+            
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'saveUserData',
+                    data: {
+                        username: currentUser,
+                        payload: {
+                            matchingReviewBank: reviewData,
+                            matchingVocabBook: vocabData
+                        }
+                    }
+                })
+            }).catch(e => console.error(e));
+        }
+
+        window.toggleVocabBtn = function(event, btn, idiom, meaning, unit) {
+            event.stopPropagation();
+            const icon = btn.querySelector('i.ph-star');
+            if (vocabBook.has(idiom)) {
+                vocabBook.delete(idiom);
+                btn.classList.remove('text-yellow-500');
+                btn.classList.add('text-slate-300');
+                icon.classList.remove('ph-fill');
+                icon.classList.add('ph-bold');
+            } else {
+                vocabBook.set(idiom, { idiom, meaning, unit });
+                btn.classList.remove('text-slate-300');
+                btn.classList.add('text-yellow-500');
+                icon.classList.remove('ph-bold');
+                icon.classList.add('ph-fill');
+            }
+            syncUserData();
+            if (typeof renderMenuButtons === 'function') renderMenuButtons();
+        };
+
+        function toggleVocab(idiomWord) {
+            const item = allIdiomsData.find(i => i.idiom === idiomWord) || Array.from(vocabBook.values()).find(i => i.idiom === idiomWord);
+            if (!item) return;
+
+            if (vocabBook.has(item.idiom)) {
+                vocabBook.delete(item.idiom);
+            } else {
+                vocabBook.set(item.idiom, item);
+            }
+            syncUserData();
+            
+            if (document.getElementById('screen-review').classList.contains('hidden') === false) {
+                showReviewScreen();
+            } else {
+                renderMenuButtons();
+            }
+        }
+
+        async function initData() {
+            const select = document.getElementById('unit-select');
+            const btnStart = document.getElementById('btn-start');
+            const startIcon = document.getElementById('start-icon');
+            const startText = document.getElementById('start-text');
+
+            try {
+                const baseUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+                const defaultRes = await fetch(baseUrl);
+                const defaultText = await defaultRes.text();
+                const defaultJson = JSON.parse(defaultText.match(/(?<=.*\().*(?=\);)/s)[0]);
+                const defaultSig = defaultJson.sig;
+
+                parseAndAddData(defaultJson, '預設單元');
+
+                const sheetNamesToTry = [];
+                const chineseMap = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十'];
+                for (let i = 1; i <= 20; i++) {
+                    sheetNamesToTry.push(i.toString());
+                    sheetNamesToTry.push(`第${chineseMap[i - 1]}單元`);
+                }
+
+                const promises = sheetNamesToTry.map(name => {
+                    return fetch(`${baseUrl}&sheet=${encodeURIComponent(name)}`)
+                        .then(res => res.text())
+                        .then(text => {
+                            if (text.includes('"status":"error"')) return null;
+                            const json = JSON.parse(text.match(/(?<=.*\().*(?=\);)/s)[0]);
+                            if (json.sig === defaultSig) return null;
+                            return { json, name };
+                        }).catch(() => null);
+                });
+
+                const results = await Promise.all(promises);
+                const seenSigs = new Set([defaultSig]);
+                results.forEach(res => {
+                    if (res && res.json && !seenSigs.has(res.json.sig)) {
+                        seenSigs.add(res.json.sig);
+                        parseAndAddData(res.json, res.name);
+                    }
+                });
+
+                updateUnitSelect();
+
+            } catch (error) {
+                select.innerHTML = '<option disabled>讀取失敗，請確認網路連線或試算表權限</option>';
+                startText.textContent = "讀取失敗";
+                startIcon.className = "ph-bold ph-warning";
+            }
+        }
+
+        function parseAndAddData(data, fallbackSheetName) {
+            let headerRow = data.table.cols.map(c => c.label);
+            let startIndex = 0;
+            if (!headerRow.some(label => label)) {
+                headerRow = data.table.rows[0].c.map(cell => cell ? cell.v : '');
+                startIndex = 1;
+            }
+
+            const unitIdx = headerRow.findIndex(c => c && c.includes('單元'));
+            const typeIdx = headerRow.findIndex(c => c && c.includes('類別'));
+            const idiomIdx = headerRow.findIndex(c => c && (c.includes('詞彙') || c.includes('成語')));
+            const meaningIdx = headerRow.findIndex(c => c && c.includes('解釋'));
+            const charIdx = headerRow.findIndex(c => c && (c.includes('字形') || c.includes('國字')));
+
+            if (idiomIdx === -1 || meaningIdx === -1) return;
+
+            let formattedSheetName = !isNaN(fallbackSheetName) ? `第 ${fallbackSheetName} 單元` : fallbackSheetName;
+
+            for (let i = startIndex; i < data.table.rows.length; i++) {
+                const row = data.table.rows[i];
+                if (!row || !row.c) continue;
+
+                const type = typeIdx >= 0 ? (row.c[typeIdx]?.v || '') : '';
+                const idiom = row.c[idiomIdx]?.v;
+                const meaning = row.c[meaningIdx]?.v;
+                let targetChar = charIdx >= 0 ? (row.c[charIdx]?.v || '') : '';
+                if (targetChar === '(無)' || targetChar === '(教材無特別註解)') targetChar = '';
+
+                let unit = unitIdx >= 0 && row.c[unitIdx]?.v ? row.c[unitIdx].v : formattedSheetName;
+
+                if (idiom && meaning && meaning !== '(無)' && meaning !== '(教材無特別註解)') {
+                    let isIdiomType = type && (type.includes('成語') || (type.includes('試題補充') && idiom.length >= 3 && !targetChar));
+                    if (isIdiomType) {
+                        allIdiomsData.push({ unit: unit.trim(), idiom: idiom.trim(), meaning: meaning.trim() });
+                    }
+                }
+            }
+        }
+
+        function getUnitNumber(unitStr) {
+            const match = unitStr.match(/\d+/);
+            if (match) return parseInt(match[0], 10);
+            const map = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10 };
+            const cMatch = unitStr.match(/[一二三四五六七八九十]/);
+            if (cMatch) return map[cMatch[0]];
+            return 999;
+        }
+
+        function updateUnitSelect() {
+            const select = document.getElementById('unit-select');
+            const btnStart = document.getElementById('btn-start');
+            const startIcon = document.getElementById('start-icon');
+            const startText = document.getElementById('start-text');
+
+            unitsList = [...new Set(allIdiomsData.map(item => item.unit).filter(u => u))];
+            unitsList.sort((a, b) => getUnitNumber(a) - getUnitNumber(b));
+            select.innerHTML = '';
+
+            if (unitsList.length === 0) {
+                select.innerHTML = '<option disabled>試算表中找不到任何成語資料</option>';
+                startText.textContent = "無資料";
+                startIcon.className = "ph-bold ph-warning";
+                return;
+            }
+
+            unitsList.forEach(unit => {
+                const count = allIdiomsData.filter(i => i.unit === unit).length;
+                const option = document.createElement('option');
+                option.value = unit;
+                option.textContent = `${unit} (共 ${count} 題)`;
+                select.appendChild(option);
+            });
+
+            select.addEventListener('change', () => {
+                updateStartButtons();
+                renderMenuButtons();
+            });
+            
+            if (restoreProgress()) {
+                select.value = currentUnitData[0].unit;
+            } else {
+                select.selectedIndex = 0;
+            }
+            
+            updateStartButtons();
+            renderMenuButtons();
+        }
+
+        function renderMenuButtons() {
+            const vocabList = Array.from(vocabBook.values());
+            const container = document.getElementById('vocab-book-container');
+            if (vocabList.length > 0) {
+                container.classList.remove('hidden');
+                document.getElementById('vocab-book-title').innerHTML = `<i class="ph-fill ph-star"></i> ⭐ 我的生詞本 (總共 ${vocabList.length} 字)`;
+                
+                const unitsMap = new Map();
+                vocabList.forEach(item => {
+                    if (item.unit) {
+                        unitsMap.set(item.unit, (unitsMap.get(item.unit) || 0) + 1);
+                    }
+                });
+                
+                const unitsDiv = document.getElementById('vocab-book-units');
+                unitsDiv.innerHTML = '';
+                
+                const getNum = (s) => {
+                    const match = s.match(/\d+/);
+                    return match ? parseInt(match[0], 10) : 999;
+                };
+                
+                Array.from(unitsMap.keys()).sort((a,b) => getNum(a) - getNum(b)).forEach(unit => {
+                    const btn = document.createElement('button');
+                    btn.className = 'bg-white border border-yellow-300 hover:bg-yellow-100 text-yellow-800 text-xs font-bold py-1.5 px-3 rounded-full transition-colors shadow-sm';
+                    btn.textContent = `${unit} (${unitsMap.get(unit)})`;
+                    btn.onclick = () => {
+                        const items = vocabList.filter(i => i.unit === unit);
+                        unitFailedIdiomIds.clear();
+                        items.forEach(i => unitFailedIdiomIds.add(i.idiom));
+                        document.getElementById('current-unit-title').textContent = `${unit} 生詞本`;
+                        showReviewScreen();
+                    };
+                    unitsDiv.appendChild(btn);
+                });
+            } else {
+                container.classList.add('hidden');
+            }
+
+            const currentUnit = document.getElementById('unit-select').value;
+            const reviewMenuContainer = document.getElementById('review-menu-container');
+            const btnReviewMenu = document.getElementById('btn-review-menu');
+            
+            if (currentUnit && allReviewBanks[currentUnit] && allReviewBanks[currentUnit].length > 0) {
+                const isSameUnit = currentUnitData.length > 0 && currentUnitData[0].unit === currentUnit;
+                const canResume = isSameUnit && (batchIndex * BATCH_SIZE < currentUnitData.length) && batchIndex > 0;
+                
+                if (!canResume) {
+                    reviewMenuContainer.classList.remove('hidden');
+                    btnReviewMenu.innerHTML = `<i class="ph-bold ph-book-open"></i> 📜 複習本單元錯題 (尚有 ${allReviewBanks[currentUnit].length} 題)`;
+                } else {
+                    reviewMenuContainer.classList.add('hidden');
+                }
+            } else {
+                reviewMenuContainer.classList.add('hidden');
+            }
+        }
+
+        function updateStartButtons() {
+            const unit = document.getElementById('unit-select').value;
+            const btnStart = document.getElementById('btn-start');
+            const startButtons = document.getElementById('start-buttons');
+            const resumeText = document.getElementById('resume-text');
+            const startIcon = document.getElementById('start-icon');
+            const startText = document.getElementById('start-text');
+
+            if (!unit) return;
+
+            const isSameUnit = currentUnitData.length > 0 && currentUnitData[0].unit === unit;
+            const canResume = isSameUnit && (batchIndex * BATCH_SIZE < currentUnitData.length) && batchIndex > 0;
+
+            if (canResume) {
+                document.getElementById('initial-start-buttons').classList.add('hidden');
+                startButtons.classList.remove('hidden');
+                startButtons.classList.add('flex');
+                resumeText.textContent = `繼續第 ${batchIndex + 1} 關`;
+            } else {
+                startButtons.classList.add('hidden');
+                startButtons.classList.remove('flex');
+                document.getElementById('initial-start-buttons').classList.remove('hidden');
+                document.getElementById('initial-start-buttons').classList.add('flex');
+                
+                btnStart.disabled = false;
+                btnStart.classList.remove('opacity-50', 'cursor-not-allowed');
+                startIcon.className = "ph-bold ph-play";
+                startText.textContent = "開始遊戲";
+            }
+        }
+
+
+
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function startGameAction(isReset) {
+            const unit = document.getElementById('unit-select').value;
+            if (!unit) return;
+
+            if (isReset) {
+                clearProgress();
+                currentUnitData = shuffleArray(allIdiomsData.filter(item => item.unit === unit));
+                batchIndex = 0;
+                unitTotalTime = 0;
+                failedIdiomIds.clear();
+                unitFailedIdiomIds.clear();
+                saveProgress();
+                
+                if (allReviewBanks[unit]) {
+                    delete allReviewBanks[unit];
+                    syncUserData();
+                }
+            }
+
+            document.getElementById('current-unit-title').textContent = unit;
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-game').classList.remove('hidden');
+            
+            renderBatch();
+        }
+
+        document.getElementById('btn-start').addEventListener('click', () => startGameAction(true));
+        document.getElementById('btn-restart').addEventListener('click', () => startGameAction(true));
+        document.getElementById('btn-resume').addEventListener('click', () => startGameAction(false));
+
+        document.getElementById('btn-vocab-book-all').addEventListener('click', () => {
+            const items = Array.from(vocabBook.values());
+            if (items.length === 0) return;
+            
+            unitFailedIdiomIds.clear();
+            items.forEach(i => unitFailedIdiomIds.add(i.idiom));
+            document.getElementById('current-unit-title').textContent = "綜合生詞本";
+            showReviewScreen();
+        });
+
+        document.getElementById('btn-review-menu').addEventListener('click', () => {
+            const unit = document.getElementById('unit-select').value;
+            if (!unit || !allReviewBanks[unit]) return;
+            
+            unitFailedIdiomIds.clear();
+            allReviewBanks[unit].forEach(i => unitFailedIdiomIds.add(i.idiom));
+            document.getElementById('current-unit-title').textContent = unit;
+            showReviewScreen();
+        });
+
+        function renderBatch() {
+            const colIdioms = document.getElementById('col-idioms');
+            const colMeanings = document.getElementById('col-meanings');
+            clearLines();
+            colIdioms.innerHTML = '';
+            colMeanings.innerHTML = '';
+            selectedIdiom = null;
+            selectedMeaning = null;
+            matchedPairs = [];
+            failedIdiomIds.clear();
+            batchStartTime = Date.now();
+
+            const startIdx = batchIndex * BATCH_SIZE;
+            currentBatch = currentUnitData.slice(startIdx, startIdx + BATCH_SIZE);
+            updateProgressText();
+
+            const leftItems = shuffleArray([...currentBatch]);
+            const rightItems = shuffleArray([...currentBatch]);
+
+            leftItems.forEach((item, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'idiom-btn w-full bg-white border-2 border-emerald-200 text-emerald-800 font-bold py-3 px-1 md:px-2 rounded-2xl shadow-sm hover:border-emerald-400 hover:shadow-md transition-all active:scale-95 z-30 select-none relative group';
+                const flexClass = dictPosition === 'right' ? 'flex-row-reverse' : 'justify-start';
+                
+                const isStarred = vocabBook.has(item.idiom);
+                const starColor = isStarred ? "text-yellow-500" : "text-slate-300";
+                const starFill = isStarred ? "ph-fill" : "ph-bold";
+                
+                btn.innerHTML = `<div class="dict-layout-container flex items-center ${flexClass} w-full h-full pointer-events-none gap-1 md:gap-2"><div class="flex gap-1 pointer-events-auto shrink-0"><button onclick="toggleVocabBtn(event, this, '${item.idiom}', '${item.meaning}', '${item.unit}')" class="flex flex-col items-center justify-center hover:bg-slate-100 rounded-lg p-1 ${starColor} transition-colors shadow-sm w-7 h-7 md:w-8 md:h-8 text-lg md:text-xl" title="加入/移除生詞本"><i class="${starFill} ph-star"></i></button><a href="https://chengyu.18dao.net/chengyu/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation(); trackDictClick('${item.idiom}', '成語典')" class="flex flex-col items-center justify-center bg-emerald-50 hover:bg-emerald-200 rounded-lg p-1 text-emerald-600 transition-colors shadow-sm w-7 h-7 md:w-8 md:h-8 text-base md:text-lg">📖</a><a href="https://dacidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation(); trackDictClick('${item.idiom}', '漢語大詞典')" class="flex flex-col items-center justify-center bg-blue-50 hover:bg-blue-200 rounded-lg p-1 text-blue-600 transition-colors shadow-sm w-7 h-7 md:w-8 md:h-8 text-base md:text-lg">📚</a><a href="https://cidian.18dao.net/zici/${encodeURIComponent(item.idiom)}" target="_blank" onclick="event.stopPropagation(); trackDictClick('${item.idiom}', '漢語詞典')" class="flex flex-col items-center justify-center bg-orange-50 hover:bg-orange-200 rounded-lg p-1 text-orange-600 transition-colors shadow-sm w-7 h-7 md:w-8 md:h-8 text-base md:text-lg">📙</a></div><span class="flex-1 text-center text-base md:text-xl tracking-tight leading-tight">${item.idiom}</span></div>`;
+                btn.dataset.id = item.idiom;
+                btn.style.animationDelay = `${index * 0.1}s`;
+                btn.classList.add('pop-in');
+                btn.addEventListener('click', () => selectItem('idiom', btn));
+                colIdioms.appendChild(btn);
+            });
+
+            rightItems.forEach((item, index) => {
+                const card = document.createElement('button');
+                card.className = 'meaning-btn w-full bg-white border-2 border-slate-200 text-slate-700 font-medium text-sm md:text-lg py-3 md:py-4 px-4 rounded-2xl shadow-sm hover:border-emerald-400 hover:shadow-md transition-all text-left z-30 active:scale-95 select-none';
+                card.textContent = item.meaning;
+                card.dataset.id = item.idiom;
+                card.style.animationDelay = `${index * 0.1}s`;
+                card.classList.add('pop-in');
+                card.addEventListener('click', () => selectItem('meaning', card));
+                colMeanings.appendChild(card);
+            });
+            document.getElementById('modal-success').classList.add('hidden');
+        }
+
+        function selectItem(type, element) {
+            if (element.classList.contains('matched')) return;
+            if (type === 'idiom') {
+                if (selectedIdiom) selectedIdiom.element.classList.remove('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+                selectedIdiom = { id: element.dataset.id, element: element };
+                element.classList.add('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+            } else {
+                if (selectedMeaning) selectedMeaning.element.classList.remove('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+                selectedMeaning = { id: element.dataset.id, element: element };
+                element.classList.add('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+            }
+            if (selectedIdiom && selectedMeaning) checkMatch();
+        }
+
+        function checkMatch() {
+            const idiomElem = selectedIdiom.element;
+            const meaningElem = selectedMeaning.element;
+
+            if (selectedIdiom.id === selectedMeaning.id) {
+                showToast("正確！", "success");
+                [idiomElem, meaningElem].forEach(el => {
+                    el.classList.remove('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+                    el.classList.add('bg-green-500', 'text-white', 'border-green-600', 'matched', 'shadow-inner');
+                    el.classList.remove('text-emerald-800', 'text-slate-700', 'hover:border-emerald-400');
+                    const dictLinks = el.querySelectorAll('a');
+                    dictLinks.forEach(link => {
+                        link.classList.remove('bg-emerald-50', 'bg-blue-50', 'bg-orange-50');
+                        link.classList.add('bg-white/20');
+                    });
+                });
+                matchedPairs.push({ left: idiomElem, right: meaningElem });
+                drawAllLines();
+
+                // 強化模式中答對，從錯題庫移除
+                if (isReinforcementMode && !failedIdiomIds.has(selectedIdiom.id)) {
+                    const matchedItem = currentUnitData.find(i => i.idiom === selectedIdiom.id) || allIdiomsData.find(i => i.idiom === selectedIdiom.id);
+                    if (matchedItem && matchedItem.unit) {
+                        const qUnit = matchedItem.unit;
+                        if (allReviewBanks[qUnit]) {
+                            allReviewBanks[qUnit] = allReviewBanks[qUnit].filter(i => i.idiom !== selectedIdiom.id);
+                            if (allReviewBanks[qUnit].length === 0) {
+                                delete allReviewBanks[qUnit];
+                            }
+                            syncUserData();
+                        }
+                    }
+                }
+
+                selectedIdiom = null;
+                selectedMeaning = null;
+                checkBatchComplete();
+            } else {
+                showToast("不對喔，再試試！", "error");
+                failedIdiomIds.add(selectedIdiom.id);
+                unitFailedIdiomIds.add(selectedIdiom.id);
+                [idiomElem, meaningElem].forEach(el => {
+                    el.classList.remove('bg-emerald-100', 'border-emerald-500', 'ring-4', 'ring-emerald-200');
+                    el.classList.add('bg-red-100', 'border-red-400', 'shake-animation');
+                    setTimeout(() => el.classList.remove('bg-red-100', 'border-red-400', 'shake-animation'), 400);
+                });
+                selectedIdiom = null;
+                selectedMeaning = null;
+            }
+        }
+
+        function checkBatchComplete() {
+            if (matchedPairs.length === currentBatch.length) {
+                updateProgressText();
+                
+                // 計算成績與傳送紀錄
+                const totalQuestions = currentBatch.length;
+                const failedCount = failedIdiomIds.size;
+                const correctCount = Math.max(0, totalQuestions - failedCount);
+                
+                const timeSpent = Math.round((Date.now() - batchStartTime) / 10) / 100;
+                unitTotalTime += timeSpent;
+                unitTotalTime = Math.round(unitTotalTime * 100) / 100;
+
+                setTimeout(() => {
+                    const modal = document.getElementById('modal-success');
+                    const isFullyComplete = ((batchIndex + 1) * BATCH_SIZE) >= currentUnitData.length;
+                    modal.classList.remove('hidden');
+                    modal.classList.add('flex');
+                    
+                    const batchTotal = currentBatch.length;
+                    const batchCorrect = Math.max(0, batchTotal - failedIdiomIds.size);
+                    const batchScore = Math.round((batchCorrect / batchTotal) * 100);
+                    
+                    if (isFullyComplete) {
+                        const totalUnitQuestions = currentUnitData.length;
+                        const finalCorrect = Math.max(0, totalUnitQuestions - unitFailedIdiomIds.size);
+                        const finalScore = Math.round((finalCorrect / totalUnitQuestions) * 100);
+                        document.getElementById('score-text').innerHTML = `本關耗時: ${Number(timeSpent).toFixed(2)} 秒<br><br><span class="text-2xl text-emerald-700">單元總得分: ${finalScore}分</span><br><span class="text-emerald-700 font-medium">總耗時: ${Number(unitTotalTime).toFixed(2)} 秒</span><br><span class="text-sm text-slate-500 font-medium">共 ${totalUnitQuestions} 題，一次答對 ${finalCorrect} 題</span>`;
+                        document.getElementById('score-text').classList.remove('hidden');
+                        document.getElementById('btn-rest').classList.add('hidden');
+                        document.getElementById('btn-next-batch').classList.add('hidden');
+                        document.getElementById('btn-show-leaderboard').classList.remove('hidden');
+                        if (unitFailedIdiomIds.size > 0) {
+                            document.getElementById('btn-review-unit').classList.remove('hidden');
+                            document.getElementById('btn-finish-unit').classList.add('hidden');
+                        } else {
+                            document.getElementById('btn-review-unit').classList.add('hidden');
+                            document.getElementById('btn-finish-unit').classList.remove('hidden');
+                        }
+                        
+                        sendGameRecord(finalScore, unitTotalTime);
+
+                        // 單元完成，將錯題存入錯題庫
+                        if (!isReinforcementMode && unitFailedIdiomIds.size > 0) {
+                            const unitTitle = document.getElementById('current-unit-title').textContent;
+                            if (!unitTitle.includes('測驗') && !unitTitle.includes('生詞本')) {
+                                const bank = allReviewBanks[unitTitle] || [];
+                                unitFailedIdiomIds.forEach(id => {
+                                    const item = allIdiomsData.find(i => i.idiom === id);
+                                    if (item && !bank.some(i => i.idiom === item.idiom)) bank.push(item);
+                                });
+                                allReviewBanks[unitTitle] = bank;
+                                syncUserData();
+                            }
+                        }
+                    } else {
+                        document.getElementById('score-text').innerHTML = `本關得分: ${batchScore} 分<br><span class="text-sm text-emerald-700">耗時: ${Number(timeSpent).toFixed(2)} 秒</span>`;
+                        document.getElementById('score-text').classList.remove('hidden');
+                        document.getElementById('btn-rest').classList.remove('hidden');
+                        document.getElementById('btn-next-batch').classList.remove('hidden');
+                        document.getElementById('btn-finish-unit').classList.add('hidden');
+                        document.getElementById('btn-review-unit').classList.add('hidden');
+                        document.getElementById('btn-show-leaderboard').classList.add('hidden');
+                    }
+                }, 800);
+            }
+        }
+
+        function updateProgressText() {
+            document.getElementById('progress-text').textContent = `${Math.min((batchIndex + 1) * BATCH_SIZE, currentUnitData.length)}/${currentUnitData.length}`;
+        }
+
+        function sendGameRecord(score, totalTime) {
+            if (!GAS_API_URL || !currentUser) return;
+            const unitTitle = document.getElementById('current-unit-title').textContent;
+            
+            if (unitTitle.includes('生詞本') || unitTitle.includes('測驗')) return; // 複習模式不列入排行榜
+
+            const wrongWords = Array.from(unitFailedIdiomIds);
+
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'saveGameRecord',
+                    data: {
+                        username: currentUser,
+                        game: '成語連連看',
+                        unit: unitTitle,
+                        score: score,
+                        timeSpent: totalTime,
+                        wrongAnswers: wrongWords
+                    }
+                })
+            }).catch(e => console.error(e));
+        }
+
+
+        // =================== 登入與返回大廳邏輯 ===================
+        window.onload = () => {
+            const savedSession = localStorage.getItem('gameSession');
+            if (savedSession) {
+                currentUser = savedSession;
+                // 更新畫面的 Hi 某某
+                const greeting = document.getElementById('user-greeting');
+                const greetingName = document.getElementById('user-greeting-name');
+                if(greeting && greetingName) {
+                    greetingName.textContent = currentUser;
+                    greeting.classList.remove('hidden');
+                    greeting.classList.add('flex');
+                }
+            } else {
+                // 未登入，強制跳轉回首頁
+                window.location.href = 'index.html';
+            }
+        };
+
+        // 按鈕綁定 (原本被刪除的)
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        document.getElementById('btn-back').addEventListener('click', () => {
+            document.getElementById('modal-confirm').classList.remove('hidden');
+            document.getElementById('modal-confirm').classList.add('flex');
+        });
+
+        document.getElementById('btn-rest').addEventListener('click', () => {
+            batchIndex++;
+            saveProgress();
+            document.getElementById('modal-success').classList.add('hidden');
+            document.getElementById('modal-success').classList.remove('flex');
+            returnToMenu();
+        });
+
+        document.getElementById('btn-next-batch').addEventListener('click', () => {
+            batchIndex++;
+            saveProgress();
+            document.getElementById('modal-success').classList.add('hidden');
+            document.getElementById('modal-success').classList.remove('flex');
+            renderBatch();
+        });
+
+        document.getElementById('btn-finish-unit').addEventListener('click', () => {
+            document.getElementById('modal-success').classList.add('hidden');
+            document.getElementById('modal-success').classList.remove('flex');
+            // reset progress since unit is fully completed
+            currentUnitData = [];
+            batchIndex = 0;
+            clearProgress();
+            returnToMenu();
+        });
+
+        document.getElementById('btn-review-unit').addEventListener('click', () => {
+            document.getElementById('modal-success').classList.add('hidden');
+            document.getElementById('modal-success').classList.remove('flex');
+            showReviewScreen();
+        });
+
+        function showReviewScreen() {
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-menu').classList.add('hidden');
+            document.getElementById('screen-review').classList.remove('hidden');
+            
+            const reviewContainer = document.getElementById('review-list');
+            reviewContainer.innerHTML = '';
+            
+            unitFailedIdiomIds.forEach(id => {
+                const item = allIdiomsData.find(i => i.idiom === id) || Array.from(vocabBook.values()).find(i => i.idiom === id);
+                if (item) {
+                    const div = document.createElement('div');
+                    div.className = 'bg-amber-50 p-5 rounded-2xl border border-amber-200 relative flex justify-between items-start gap-4';
+                    
+                    const isStarred = vocabBook.has(item.idiom);
+                    const starIconClass = isStarred ? 'ph-fill ph-star text-yellow-500' : 'ph-regular ph-star text-slate-300 hover:text-yellow-400';
+                    
+                    div.innerHTML = `
+                        <div class="flex-1">
+                            <h3 class="text-xl font-bold text-slate-800 mb-2">${item.idiom}</h3>
+                            <p class="text-slate-700 font-medium whitespace-pre-wrap">${item.meaning}</p>
+                        </div>
+                        <button onclick="toggleVocab('${item.idiom}')" class="text-3xl transition-colors shrink-0">
+                            <i class="${starIconClass}"></i>
+                        </button>
+                    `;
+                    reviewContainer.appendChild(div);
+                }
+            });
+        }
+
+        document.getElementById('btn-review-back').addEventListener('click', () => {
+            document.getElementById('screen-review').classList.add('hidden');
+            currentUnitData = [];
+            batchIndex = 0;
+            clearProgress();
+            returnToMenu();
+        });
+
+        document.getElementById('btn-reinforce').addEventListener('click', () => {
+            document.getElementById('screen-review').classList.add('hidden');
+            
+            // Start reinforcement
+            const reviewItems = Array.from(unitFailedIdiomIds).map(id => allIdiomsData.find(i => i.idiom === id) || Array.from(vocabBook.values()).find(i => i.idiom === id)).filter(Boolean);
+            currentUnitData = shuffleArray(reviewItems);
+            batchIndex = 0;
+            failedIdiomIds.clear();
+            unitFailedIdiomIds.clear(); // Reset so they don't loop forever
+            clearProgress(); // Clear progress for the normal unit since they started reinforcement
+            
+            isReinforcementMode = true;
+            document.getElementById('current-unit-title').textContent = "強化記憶測驗";
+            document.getElementById('screen-game').classList.remove('hidden');
+            renderBatch();
+        });
+
+        document.getElementById('btn-confirm-cancel').addEventListener('click', () => {
+            document.getElementById('modal-confirm').classList.add('hidden');
+            document.getElementById('modal-confirm').classList.remove('flex');
+        });
+        document.getElementById('btn-confirm-yes').addEventListener('click', () => {
+            document.getElementById('modal-confirm').classList.add('hidden');
+            document.getElementById('modal-confirm').classList.remove('flex');
+            document.getElementById('modal-success').classList.add('hidden');
+            document.getElementById('modal-success').classList.remove('flex');
+            clearProgress();
+            returnToMenu();
+        });
+
+        document.getElementById('btn-toggle-dict').addEventListener('click', () => {
+            dictPosition = dictPosition === 'left' ? 'right' : 'left';
+            localStorage.setItem('dictPosition', dictPosition);
+            document.querySelectorAll('.dict-layout-container').forEach(container => {
+                if (dictPosition === 'right') {
+                    container.classList.remove('justify-start');
+                    container.classList.add('flex-row-reverse');
+                } else {
+                    container.classList.remove('flex-row-reverse');
+                    container.classList.add('justify-start');
+                }
+            });
+        });
+
+        function trackDictClick(word, dictType) {
+            unitFailedIdiomIds.add(word); // Record as failed/reviewed for the review screen
+            if (!GAS_API_URL) return;
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'logDictClick',
+                    data: {
+                        username: currentUser || '訪客',
+                        game: '成語連連看',
+                        word: word,
+                        dictType: dictType
+                    }
+                })
+            }).catch(e => console.error(e));
+        }
+
+        function returnToMenu() {
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-menu').classList.remove('hidden');
+            clearLines();
+            isReinforcementMode = false;
+            
+            const unitTitle = document.getElementById('current-unit-title').textContent;
+            if (!unitTitle.includes('測驗') && !unitTitle.includes('生詞本')) {
+                if (allReviewBanks[unitTitle] && unitFailedIdiomIds.size === 0) {
+                    delete allReviewBanks[unitTitle];
+                    syncUserData();
+                }
+            }
+
+            if (typeof updateStartButtons === 'function') updateStartButtons();
+            if (typeof renderMenuButtons === 'function') renderMenuButtons();
+        }
+
+        function clearLines() {
+            document.getElementById('svg-layer').innerHTML = '';
+        }
+
+        function drawAllLines() {
+            clearLines();
+            matchedPairs.forEach(pair => {
+                drawLineBetween(pair.left, pair.right);
+            });
+        }
+
+        function drawLineBetween(elem1, elem2) {
+            const svg = document.getElementById('svg-layer');
+            const svgRect = svg.getBoundingClientRect();
+            const rect1 = elem1.getBoundingClientRect();
+            const rect2 = elem2.getBoundingClientRect();
+
+            const x1 = rect1.right - svgRect.left;
+            const y1 = rect1.top + (rect1.height / 2) - svgRect.top;
+            const x2 = rect2.left - svgRect.left;
+            const y2 = rect2.top + (rect2.height / 2) - svgRect.top;
+
+            const controlPointOffset = 50;
+            const d = `M ${x1} ${y1} C ${x1 + controlPointOffset} ${y1}, ${x2 - controlPointOffset} ${y2}, ${x2} ${y2}`;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", d);
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", "#22c55e");
+            path.setAttribute("stroke-width", "4");
+            path.setAttribute("stroke-linecap", "round");
+            path.classList.add('path-line');
+
+            svg.appendChild(path);
+        }
+
+        window.addEventListener('resize', () => {
+            if (document.getElementById('screen-game').classList.contains('hidden') === false) {
+                clearTimeout(window.resizeTimer);
+                window.resizeTimer = setTimeout(drawAllLines, 100);
+            }
+        });
+
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast-message');
+            toast.textContent = msg;
+
+            if (type === 'error') {
+                toast.classList.replace('bg-slate-800', 'bg-red-600');
+            } else {
+                toast.classList.replace('bg-red-600', 'bg-slate-800');
+            }
+
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100', 'translate-y-4');
+
+            setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-4');
+                toast.classList.add('opacity-0');
+            }, 1000);
+        }
+
+        // 啟動系統
+        init();
+
+        // =================== 排行榜邏輯 ===================
+        function fetchLeaderboard(retryCount = 3) {
+            if (!GAS_API_URL) return;
+            const tbody = document.getElementById('leaderboard-body');
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-500 font-medium"><i class="ph-bold ph-spinner animate-spin text-2xl mb-2"></i><br>載入中...</td></tr>`;
+            
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'getLeaderboard', data: { game: '成語連連看' } })
+            }).then(res => res.json()).then(res => {
+                if (res.status === 'success') {
+                    leaderboardDataCache = res.data;
+                    renderLeaderboard();
+                } else {
+                    if (retryCount > 0) { setTimeout(() => fetchLeaderboard(retryCount - 1), 1000); }
+                    else { tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`; }
+                }
+            }).catch(e => {
+                console.error(e);
+                if (retryCount > 0) { setTimeout(() => fetchLeaderboard(retryCount - 1), 1000); }
+                else { tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-red-500 font-medium">載入失敗</td></tr>`; }
+            });
+        }
+
+        function renderLeaderboard() {
+            const tbody = document.getElementById('leaderboard-body');
+            const unitFilter = document.getElementById('leaderboard-unit-select').value;
+            
+            let data = leaderboardDataCache;
+            if (unitFilter !== 'all') {
+                data = data.filter(r => r.unit === unitFilter);
+            }
+            
+            data.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                return a.timeSpent - b.timeSpent;
+            });
+            
+            data = data.slice(0, 10);
+            
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-slate-500 font-medium">目前還沒有紀錄喔！成為第一個上榜的人吧！</td></tr>`;
+                return;
+            }
+            
+            tbody.innerHTML = '';
+            data.forEach((record, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = `border-b border-slate-100 last:border-b-0 hover:bg-indigo-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`;
+                
+                let rankHtml = `<span class="text-slate-500 px-2">${idx + 1}</span>`;
+                if (idx === 0) rankHtml = `<span class="text-yellow-500 text-xl"><i class="ph-fill ph-medal"></i> 1</span>`;
+                else if (idx === 1) rankHtml = `<span class="text-slate-400 text-xl"><i class="ph-fill ph-medal"></i> 2</span>`;
+                else if (idx === 2) rankHtml = `<span class="text-amber-700 text-xl"><i class="ph-fill ph-medal"></i> 3</span>`;
+                
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-black">${rankHtml}</td>
+                    <td class="py-3 px-4 font-bold text-slate-700">${record.username}</td>
+                    <td class="py-3 px-4 text-sm text-slate-600">${record.unit}</td>
+                    <td class="py-3 px-4 font-bold text-emerald-600">${record.score}分</td>
+                    <td class="py-3 px-4 font-medium text-blue-600">${Number(record.timeSpent).toFixed(2)}秒</td>
+                    <td class="py-3 px-4 text-xs text-slate-400">${new Date(record.timestamp).toLocaleString('zh-TW', {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false})}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById('btn-leaderboard').addEventListener('click', () => {
+            document.getElementById('modal-leaderboard').classList.remove('hidden');
+            document.getElementById('modal-leaderboard').classList.add('flex');
+            
+            const unitSelect = document.getElementById('unit-select');
+            const leaderboardUnitSelect = document.getElementById('leaderboard-unit-select');
+            
+            // Populating options
+            leaderboardUnitSelect.innerHTML = '<option value="all">所有單元 (綜合)</option>';
+            Array.from(unitSelect.options).forEach(opt => {
+                if(opt.value && !opt.disabled) {
+                    const newOpt = document.createElement('option');
+                    newOpt.value = opt.value;
+                    newOpt.textContent = opt.textContent;
+                    leaderboardUnitSelect.appendChild(newOpt);
+                }
+            });
+            
+            leaderboardUnitSelect.value = unitSelect.value || 'all';
+            fetchLeaderboard();
+        });
+
+        document.getElementById('btn-show-leaderboard').addEventListener('click', () => {
+            document.getElementById('modal-success').classList.add('hidden');
+            document.getElementById('modal-success').classList.remove('flex');
+            
+            // 先回到選單，以免關閉英雄榜後卡在遊戲畫面
+            currentUnitData = [];
+            batchIndex = 0;
+            clearProgress();
+            returnToMenu();
+            
+            document.getElementById('modal-leaderboard').classList.remove('hidden');
+            document.getElementById('modal-leaderboard').classList.add('flex');
+            
+            const unitSelect = document.getElementById('unit-select');
+            const leaderboardUnitSelect = document.getElementById('leaderboard-unit-select');
+            
+            leaderboardUnitSelect.innerHTML = '<option value="all">所有單元 (綜合)</option>';
+            Array.from(unitSelect.options).forEach(opt => {
+                if(opt.value && !opt.disabled) {
+                    const newOpt = document.createElement('option');
+                    newOpt.value = opt.value;
+                    newOpt.textContent = opt.textContent;
+                    leaderboardUnitSelect.appendChild(newOpt);
+                }
+            });
+
+            leaderboardUnitSelect.value = document.getElementById('current-unit-title').textContent || 'all';
+            fetchLeaderboard();
+        });
+
+        document.getElementById('btn-close-leaderboard').addEventListener('click', () => {
+            document.getElementById('modal-leaderboard').classList.add('hidden');
+            document.getElementById('modal-leaderboard').classList.remove('flex');
+        });
+
+        document.getElementById('leaderboard-unit-select').addEventListener('change', renderLeaderboard);
+
+    </script>
+</body>
+
+</html>

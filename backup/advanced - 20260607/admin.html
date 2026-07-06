@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方寸語文教學 - 後台管理系統</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: #f8fafc;
+        }
+
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+
+<body class="text-slate-800">
+    <div id="app" class="min-h-screen flex flex-col relative">
+
+        <!-- =================== 登入畫面 =================== -->
+        <div v-if="!isLoggedIn" class="flex-1 flex justify-center items-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 p-8 w-full max-w-md pop-in text-center">
+                <div
+                    class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mx-auto mb-4 text-3xl">
+                    <i class="ph-bold ph-shield-check"></i>
+                </div>
+                <h1 class="text-2xl font-black text-slate-800 mb-2">後台管理登入</h1>
+                <p class="text-slate-500 mb-6 text-sm">請輸入管理員帳號密碼</p>
+
+                <div class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">管理員帳號</label>
+                        <input v-model="loginForm.username" type="text"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            placeholder="輸入帳號" @keyup.enter="doLogin">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-slate-700 mb-1">密碼</label>
+                        <input v-model="loginForm.password" type="password"
+                            class="w-full px-4 py-3 rounded-xl border border-slate-300 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                            placeholder="輸入密碼" @keyup.enter="doLogin">
+                    </div>
+
+                    <div v-if="loginError" class="text-red-500 text-sm font-bold text-center mt-2">{{ loginError }}
+                    </div>
+
+                    <div class="pt-2">
+                        <!-- =================== GAS Web App 網址 (部署後貼上) =================== -->
+                        <label
+                            class="block text-sm font-bold text-slate-700 mb-1">https://script.google.com/macros/s/AKfycbzEx9q1G45YmJqwuo4GMa77zzfHsaxrcq03woKK8HgQj6xhm9duqFB26cjlW0hdOFN_cw/exec</label>
+                        <input v-model="apiUrl" type="text"
+                            class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:border-blue-500 bg-slate-50"
+                            placeholder="https://script.google.com/macros/s/.../exec">
+                    </div>
+
+                    <button @click="doLogin" :disabled="loading"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-4">
+                        <i v-if="loading" class="ph-bold ph-spinner animate-spin"></i>
+                        <span>登入</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== 管理後台 =================== -->
+        <div v-else class="flex-1 flex flex-col h-screen overflow-hidden">
+            <!-- Header -->
+            <header class="bg-slate-900 text-white px-6 py-4 flex justify-between items-center flex-shrink-0">
+                <div class="flex items-center gap-3">
+                    <i class="ph-fill ph-chart-bar text-2xl text-blue-400"></i>
+                    <h1 class="text-xl font-bold">方寸語文教學 - 數據中心</h1>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-slate-300 text-sm">管理員：{{ loginForm.username }}</span>
+                    <button @click="doLogout"
+                        class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2 rounded-lg text-sm font-bold transition-colors">登出</button>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
+
+                <div v-if="loadingData" class="flex flex-col items-center justify-center h-64 text-slate-500 gap-4">
+                    <i class="ph-bold ph-spinner animate-spin text-4xl text-blue-500"></i>
+                    <p class="font-bold">正在從 Google Sheets 讀取最新數據...</p>
+                </div>
+
+                <div v-else-if="apiError"
+                    class="bg-red-50 text-red-600 border border-red-200 p-6 rounded-2xl text-center">
+                    <i class="ph-bold ph-warning-circle text-4xl mb-2"></i>
+                    <p class="font-bold text-lg mb-1">讀取失敗</p>
+                    <p class="text-sm">{{ apiError }}</p>
+                    <button @click="fetchData"
+                        class="mt-4 bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg font-bold transition-colors">重試</button>
+                </div>
+
+                <div v-else class="max-w-6xl mx-auto space-y-8">
+
+                    <!-- Stats Overview -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                            <div
+                                class="w-14 h-14 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center text-2xl">
+                                <i class="ph-bold ph-users"></i>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 text-sm font-bold">總註冊學生數</p>
+                                <p class="text-3xl font-black text-slate-800">{{ dashboardData.users.filter(u => u.Role
+                                    !== 'admin').length }}</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                            <div
+                                class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex justify-center items-center text-2xl">
+                                <i class="ph-bold ph-game-controller"></i>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 text-sm font-bold">總遊戲闖關次數</p>
+                                <p class="text-3xl font-black text-slate-800">{{ dashboardData.records.length }}</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4">
+                            <div
+                                class="w-14 h-14 bg-orange-100 text-orange-600 rounded-full flex justify-center items-center text-2xl">
+                                <i class="ph-bold ph-book-open"></i>
+                            </div>
+                            <div>
+                                <p class="text-slate-500 text-sm font-bold">字典查詢總次數</p>
+                                <p class="text-3xl font-black text-slate-800">{{ dashboardData.clicks.length }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layout: Left (Leaderboard), Right (Recent Records) -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                        <!-- 錯題排行榜 -->
+                        <div
+                            class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                            <div
+                                class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+                                <h2 class="font-bold text-slate-800 flex items-center gap-2"><i
+                                        class="ph-bold ph-trend-down text-rose-500"></i> 易錯題排行榜 (Top 10)</h2>
+                            </div>
+                            <div class="p-0 overflow-y-auto max-h-96">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-slate-50 text-slate-500 sticky top-0">
+                                        <tr>
+                                            <th class="px-6 py-3 font-bold">排名</th>
+                                            <th class="px-6 py-3 font-bold">詞彙/成語</th>
+                                            <th class="px-6 py-3 font-bold text-right">錯誤次數</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr v-for="(item, index) in wrongAnswersLeaderboard" :key="item.word"
+                                            class="hover:bg-slate-50 transition-colors">
+                                            <td class="px-6 py-3 text-slate-500 font-bold">#{{ index + 1 }}</td>
+                                            <td class="px-6 py-3 font-bold text-slate-800">{{ item.word }}</td>
+                                            <td class="px-6 py-3 text-right">
+                                                <span
+                                                    class="bg-rose-100 text-rose-700 px-2 py-1 rounded-md font-bold">{{
+                                                    item.count }} 次</span>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="wrongAnswersLeaderboard.length === 0">
+                                            <td colspan="3" class="px-6 py-8 text-center text-slate-400">目前還沒有任何錯題紀錄
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 最新闖關紀錄 -->
+                        <div
+                            class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+                            <div
+                                class="bg-slate-50 border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+                                <h2 class="font-bold text-slate-800 flex items-center gap-2"><i
+                                        class="ph-bold ph-clock-counter-clockwise text-blue-500"></i> 最新闖關紀錄</h2>
+                            </div>
+                            <div class="p-0 overflow-y-auto max-h-96">
+                                <table class="w-full text-left text-sm">
+                                    <thead class="bg-slate-50 text-slate-500 sticky top-0">
+                                        <tr>
+                                            <th class="px-6 py-3 font-bold">時間</th>
+                                            <th class="px-6 py-3 font-bold">學生</th>
+                                            <th class="px-6 py-3 font-bold">單元</th>
+                                            <th class="px-6 py-3 font-bold">得分</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr v-for="(record, i) in recentRecords" :key="i"
+                                            class="hover:bg-slate-50 transition-colors">
+                                            <td class="px-6 py-3 text-slate-500">{{ formatDate(record.Timestamp) }}</td>
+                                            <td class="px-6 py-3 font-bold text-blue-700">{{ record.Username }}</td>
+                                            <td class="px-6 py-3 text-slate-600">{{ record.Game }}<br><span
+                                                    class="text-xs text-slate-400">{{ record.Unit }}</span></td>
+                                            <td class="px-6 py-3">
+                                                <span
+                                                    :class="{'text-emerald-600': record.Score >= 80, 'text-amber-500': record.Score >= 60 && record.Score < 80, 'text-rose-500': record.Score < 60}"
+                                                    class="font-bold">
+                                                    {{ record.Score }} 分
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="recentRecords.length === 0">
+                                            <td colspan="4" class="px-6 py-8 text-center text-slate-400">目前還沒有任何闖關紀錄
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </main>
+        </div>
+
+    </div>
+
+    <script>
+        const { createApp, ref, computed, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const isLoggedIn = ref(false);
+                const loading = ref(false);
+                const loadingData = ref(false);
+                const loginError = ref('');
+                const apiError = ref('');
+                const apiUrl = ref(localStorage.getItem('gasApiUrl') || '');
+
+                const loginForm = ref({
+                    username: '',
+                    password: ''
+                });
+
+                const dashboardData = ref({
+                    users: [],
+                    records: [],
+                    clicks: []
+                });
+
+                // Check localStorage on mount
+                onMounted(() => {
+                    const saved = localStorage.getItem('adminSession');
+                    if (saved) {
+                        const parsed = JSON.parse(saved);
+                        loginForm.value.username = parsed.username;
+                        loginForm.value.password = parsed.password;
+                        isLoggedIn.value = true;
+                        fetchData();
+                    }
+                });
+
+                const doLogin = async () => {
+                    if (!apiUrl.value) {
+                        loginError.value = '請填寫 API 網址';
+                        return;
+                    }
+                    if (!loginForm.value.username || !loginForm.value.password) {
+                        loginError.value = '請輸入帳號密碼';
+                        return;
+                    }
+
+                    localStorage.setItem('gasApiUrl', apiUrl.value);
+                    loading.value = true;
+                    loginError.value = '';
+
+                    try {
+                        const response = await fetch(apiUrl.value, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'login',
+                                data: {
+                                    username: loginForm.value.username,
+                                    password: loginForm.value.password
+                                }
+                            })
+                        });
+                        let res;
+                        try {
+                            res = await response.json();
+                        } catch(e) {
+                            throw new Error('無法解析伺服器回傳資料，請確認您已將 Apps Script 存取權限設為「所有人 (Anyone)」。');
+                        }
+
+                        if (res.success && res.role === 'admin') {
+                            isLoggedIn.value = true;
+                            localStorage.setItem('adminSession', JSON.stringify({
+                                username: loginForm.value.username,
+                                password: loginForm.value.password
+                            }));
+                            fetchData();
+                        } else {
+                            loginError.value = res.error || '無管理員權限或密碼錯誤';
+                        }
+                    } catch (e) {
+                        if (e.message.includes('NetworkError') || e.message.includes('Failed to fetch')) {
+                            loginError.value = '跨網域連線被拒絕 (CORS Error)。這通常是因為 Google Apps Script 的「誰可以存取」未設定為「所有人 (Anyone)」，或是網址錯誤。請重新部署！';
+                        } else {
+                            loginError.value = '連線失敗：' + e.message;
+                        }
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const doLogout = () => {
+                    isLoggedIn.value = false;
+                    localStorage.removeItem('adminSession');
+                };
+
+                const fetchData = async () => {
+                    loadingData.value = true;
+                    apiError.value = '';
+                    try {
+                        const response = await fetch(apiUrl.value, {
+                            method: 'POST',
+                            body: JSON.stringify({
+                                action: 'getAdminData',
+                                data: {
+                                    role: 'admin',
+                                    username: loginForm.value.username,
+                                    password: loginForm.value.password // theoretically should authenticate again, but we simplify
+                                }
+                            })
+                        });
+                        let res;
+                        try {
+                            res = await response.json();
+                        } catch(e) {
+                            throw new Error('無法解析伺服器回傳資料，請確認存取權限。');
+                        }
+                        
+                        if (res.success) {
+                            dashboardData.value.users = res.users || [];
+                            dashboardData.value.records = res.records || [];
+                            dashboardData.value.clicks = res.clicks || [];
+                        } else {
+                            apiError.value = res.error || '獲取資料失敗';
+                        }
+                    } catch (e) {
+                        if (e.message.includes('NetworkError') || e.message.includes('Failed to fetch')) {
+                            apiError.value = '跨網域連線被拒絕 (CORS Error)。這通常是因為 Google Apps Script 的「誰可以存取」未設定為「所有人 (Anyone)」，導致被 Google 登入頁面阻擋。';
+                        } else {
+                            apiError.value = '連線失敗：' + e.message;
+                        }
+                    } finally {
+                        loadingData.value = false;
+                    }
+                };
+
+                // Computed Properties
+                const recentRecords = computed(() => {
+                    // Sort descending by timestamp
+                    return [...dashboardData.value.records].sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp)).slice(0, 50);
+                });
+
+                const wrongAnswersLeaderboard = computed(() => {
+                    const counts = {};
+                    dashboardData.value.records.forEach(r => {
+                        if (r.WrongAnswers) {
+                            const words = r.WrongAnswers.toString().split(',');
+                            words.forEach(w => {
+                                const trimW = w.trim();
+                                if (trimW) {
+                                    counts[trimW] = (counts[trimW] || 0) + 1;
+                                }
+                            });
+                        }
+                    });
+
+                    return Object.keys(counts)
+                        .map(word => ({ word, count: counts[word] }))
+                        .sort((a, b) => b.count - a.count)
+                        .slice(0, 10);
+                });
+
+                const formatDate = (isoStr) => {
+                    if (!isoStr) return '';
+                    const d = new Date(isoStr);
+                    return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+                };
+
+                return {
+                    isLoggedIn, loading, loadingData, loginError, apiError, apiUrl, loginForm,
+                    dashboardData, doLogin, doLogout, fetchData, recentRecords, wrongAnswersLeaderboard, formatDate
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>

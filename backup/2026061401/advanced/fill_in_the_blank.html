@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>字音字形填空遊戲</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+        }
+
+        .pop-in {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        @keyframes popIn {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .shake-animation {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        
+        .answer-input.correct {
+            border-color: #10B981 !important;
+            background-color: rgba(16, 185, 129, 0.1) !important;
+            color: #10B981 !important;
+        }
+
+        .answer-input.incorrect {
+            border-color: #EF4444 !important;
+            background-color: rgba(239, 68, 68, 0.1) !important;
+            color: #EF4444 !important;
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 relative">
+
+
+
+    <!-- =================== 全域招呼語 =================== -->
+    <div id="user-greeting" class="absolute right-4 top-4 text-sm font-bold text-slate-500 bg-white/80 px-3 py-2 rounded-xl shadow-sm hidden flex-col items-end gap-1 z-50">
+        <div>Hi, <span id="user-greeting-name"></span></div>
+        <button id="btn-logout" class="text-xs text-slate-400 hover:text-slate-600 underline">返回大廳</button>
+    </div>
+
+    <div id="app" class="w-full h-full max-w-4xl mx-auto flex flex-col relative md:py-4 pt-16 md:pt-4">
+
+        <!-- =================== 畫面一：主選單 =================== -->
+        <div v-if="gameState === 'menu'" class="flex-1 w-full overflow-y-auto px-4 py-6 flex flex-col items-center">
+            
+            <div class="w-full max-w-md mt-8 md:mt-12 mb-auto flex flex-col items-center py-4">
+                <header class="text-center mb-6 w-full pop-in">
+                    <h1 class="text-3xl md:text-4xl font-black text-blue-600 mb-3 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
+                        <i class="ph-fill ph-pencil-simple"></i> 字音字形填空
+                    </h1>
+                    <p class="text-blue-700/80 font-medium text-sm md:text-base">看懂解釋，填入正確的國字或注音！</p>
+                </header>
+
+                <div class="bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-10 shadow-xl w-full border-2 border-blue-100 relative pop-in">
+                    <h2 class="text-2xl font-bold text-center text-blue-800 mb-6">選擇挑戰單元</h2>
+
+                    <!-- 我的生詞本入口 -->
+                    <div v-if="vocabBookList.length > 0" class="w-full mb-6 bg-yellow-50 rounded-2xl p-4 border border-yellow-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-bold text-yellow-800 flex items-center gap-2">
+                                ⭐ 我的生詞本 (總共 {{ vocabBookList.length }} 字)
+                            </h3>
+                            <button @click="startVocabReview()" class="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-bold py-1.5 px-4 rounded-lg text-sm shadow-sm transition-colors">
+                                全部複習
+                            </button>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button v-for="unitName in vocabBookUnits" :key="unitName" @click="startVocabReview(unitName)" class="bg-white border border-yellow-300 hover:bg-yellow-100 text-yellow-800 text-xs font-bold py-1.5 px-3 rounded-full transition-colors shadow-sm">
+                                {{ unitName }} ({{ getVocabCountByUnit(unitName) }})
+                            </button>
+                        </div>
+                    </div>
+
+                <div class="space-y-6">
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-blue-700 mb-2">請選擇單元：</label>
+                        <select v-model="currentUnit" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700">
+                            <option v-if="loading" disabled selected>正在掃描題庫中...</option>
+                            <option v-else v-for="unitObj in availableUnits" :value="unitObj.name">
+                                {{ unitObj.name }} (共 {{ unitObj.count }} 題)
+                            </option>
+                        </select>
+                        <div v-if="hasReviewBankForCurrentUnit && !canResume" class="mt-2 text-right">
+                            <button @click="startReviewFromMenu" class="text-amber-600 hover:text-amber-700 font-bold text-sm flex items-center justify-end gap-1 w-full mt-1">
+                                <i class="ph-bold ph-book-open"></i> 📜 複習本單元錯題 (尚有 {{ allReviewBanks[currentUnit].length }} 題)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="block text-sm font-bold text-blue-700 mb-2">選擇挑戰模式：</label>
+                        <select v-model="gameMode" :disabled="canResume" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <option value="trueHero">🏆 完整真英雄 (預設存檔)</option>
+                            <option value="sprint20">🏃 20題挑戰賽 (隨機測驗)</option>
+                            <option value="survival">⏱️ 限時生存賽 (3分鐘無限題)</option>
+                        </select>
+                    </div>
+
+                    <div v-if="gameMode === 'trueHero'" class="space-y-2">
+                        <label class="block text-sm font-bold text-blue-700 mb-2">每階段題數：</label>
+                        <select v-model="batchSize" :disabled="canResume" class="w-full px-4 py-3 rounded-xl border-2 border-blue-200 bg-white text-lg focus:outline-none focus:border-blue-500 transition-colors cursor-pointer font-medium text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <option :value="5">5 題 / 階段</option>
+                            <option :value="10">10 題 / 階段</option>
+                            <option :value="20">20 題 / 階段</option>
+                            <option :value="999">不分段 (一次完成)</option>
+                        </select>
+                    </div>
+
+                    <div v-if="canResume" class="flex gap-4">
+                        <button @click="resumeGame" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2">
+                            <i class="ph-bold ph-play"></i>
+                            <span>繼續第 {{ currentBatchIndex + 1 }} 關</span>
+                        </button>
+                        <button @click="startGame" class="flex-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-4 rounded-xl text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2">
+                            <i class="ph-bold ph-arrow-counter-clockwise"></i>
+                            <span>重新開始</span>
+                        </button>
+                    </div>
+                    <div v-else class="flex gap-4">
+                        <button @click="startGame" :disabled="loading || !currentUnit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i v-if="loading" class="ph-bold ph-spinner animate-spin"></i>
+                            <i v-else class="ph-bold ph-play"></i>
+                            <span>{{ loading ? '載入中...' : '開始練習' }}</span>
+                        </button>
+                        <button @click="showLeaderboardModal = true" :disabled="loading || !currentUnit" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-6 rounded-xl text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
+                            <i class="ph-bold ph-trophy"></i> 英雄榜
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <p class="mt-6 text-sm text-slate-500 text-center">{{ feedbackMessage || '系統會自動掃描試算表中所有工作表的「單元」欄位。' }}</p>
+            </div>
+        </div>
+
+        <!-- =================== 畫面二：遊戲區 =================== -->
+        <div v-if="gameState === 'playing'" class="flex-1 w-full flex flex-col relative pop-in bg-white/90 backdrop-blur-md md:rounded-3xl shadow-2xl overflow-hidden border border-blue-100">
+
+            <!-- 遊戲區標頭 -->
+            <div class="bg-blue-600 text-white px-6 py-4 flex justify-between items-center shadow-md relative z-20">
+                <button @click="confirmBackToMenu" class="flex items-center gap-1 font-bold text-blue-100 hover:text-white transition-colors bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20">
+                    <i class="ph-bold ph-arrow-left"></i> 返回
+                </button>
+                <h2 class="text-xl font-black tracking-wide">{{ currentUnit }}</h2>
+                <div class="font-bold bg-white/20 px-3 py-1 rounded-lg text-sm flex gap-1 items-center">
+                    <span v-if="gameMode === 'survival'" class="bg-rose-600 px-2 py-0.5 rounded mr-1 text-white flex items-center gap-1 animate-pulse">
+                        <i class="ph-bold ph-timer"></i> {{ Math.floor(survivalTimeLeft / 60) }}:{{ (survivalTimeLeft % 60).toString().padStart(2, '0') }}
+                    </span>
+                    <span v-else-if="batchSize < 999" class="bg-blue-800 px-2 py-0.5 rounded mr-1">第 {{ currentBatchIndex + 1 }} / {{ totalBatches }} 關</span>
+                    <span>進度: {{ currentIndex + 1 }} / {{ currentBatchQuestions.length }}</span>
+                </div>
+            </div>
+
+            <!-- 控制面板 -->
+            <div class="bg-blue-50 px-4 py-3 border-b border-blue-200 flex justify-center gap-2 md:gap-4 relative z-10 shadow-sm flex-wrap">
+                <button v-if="gameMode === 'trueHero'" @click="prevQuestion" :disabled="currentIndex === 0" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-blue-700 bg-white border border-blue-300 hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="ph-bold ph-caret-left"></i> 上一題
+                </button>
+                <button @click="showAnswer" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 transition-colors">
+                    <i class="ph-bold ph-lightbulb"></i> 看解答
+                </button>
+                <button @click="nextQuestion" class="flex flex-1 md:flex-none items-center justify-center gap-1 md:gap-2 px-3 md:px-6 py-2 rounded-lg font-bold text-blue-700 bg-white border border-blue-300 hover:bg-blue-100 transition-colors shadow-sm">
+                    <span v-if="gameMode === 'survival'">跳過</span><span v-else>下一題</span> <i class="ph-bold ph-caret-right"></i>
+                </button>
+            </div>
+
+            <!-- 遊戲主要內容區 -->
+            <div class="flex-1 p-4 md:p-12 md:pt-16 overflow-y-auto flex flex-col items-center justify-start relative">
+                
+                <div v-if="currentBatchQuestions.length > 0" class="w-full max-w-2xl">
+                    <!-- 提示區塊 -->
+                    <div class="bg-white p-6 md:p-8 rounded-3xl shadow-md border-2 border-blue-100 mb-8 relative">
+                        <div class="flex flex-col md:flex-row justify-between md:items-center mb-4 border-b-2 border-blue-100 pb-3 gap-3">
+                            <div class="text-lg font-black text-blue-600 flex items-center gap-2">
+                                <i class="ph-fill ph-info text-2xl"></i> 提示 (解釋 / 例句)
+                                <button v-if="currentQuestion.vocab" @click="toggleVocab(currentQuestion)" class="ml-2 hover:scale-110 transition-transform">
+                                    <i :class="[isVocab(currentQuestion.vocab) ? 'ph-fill text-yellow-500' : 'ph-bold text-slate-300', 'ph-star text-2xl']"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- 三大字典按鈕 -->
+                            <div v-if="currentQuestion.vocab" class="flex gap-2 self-end md:self-auto flex-wrap justify-end">
+                                <a @click="trackDictClick(currentQuestion.vocab, '成語典')" :href="'https://chengyu.18dao.net/chengyu/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-emerald-50 text-emerald-600 rounded-full px-3 py-1.5 hover:bg-emerald-200 transition-colors shadow-sm border border-emerald-200 text-xs md:text-sm font-bold" title="成語典 (圖解與語音)">
+                                    <span class="text-base md:text-lg leading-none">📖</span>
+                                    <span>成語典</span>
+                                </a>
+                                <a @click="trackDictClick(currentQuestion.vocab, '漢語大詞典')" :href="'https://dacidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-blue-50 text-blue-600 rounded-full px-3 py-1.5 hover:bg-blue-200 transition-colors shadow-sm border border-blue-200 text-xs md:text-sm font-bold" title="國語大辭典">
+                                    <span class="text-base md:text-lg leading-none">📚</span>
+                                    <span>大辭典</span>
+                                </a>
+                                <a @click="trackDictClick(currentQuestion.vocab, '漢語詞典')" :href="'https://cidian.18dao.net/zici/' + currentQuestion.vocab" target="_blank" class="flex items-center justify-center gap-1 bg-orange-50 text-orange-600 rounded-full px-3 py-1.5 hover:bg-orange-200 transition-colors shadow-sm border border-orange-200 text-xs md:text-sm font-bold" title="國語辭典">
+                                    <span class="text-base md:text-lg leading-none">📙</span>
+                                    <span>辭典</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="text-xl md:text-2xl text-slate-700 leading-relaxed font-medium whitespace-pre-wrap">{{ currentQuestion.hint }}</div>
+                    </div>
+
+                    <!-- 輸入區塊 -->
+                    <div class="flex flex-col items-center">
+                        <input type="text" id="answerInput" v-model="userAnswer" @keyup.enter="checkAnswer"
+                            :class="['w-full max-w-sm text-center text-3xl md:text-4xl font-black py-4 px-6 rounded-2xl border-4 border-dashed border-slate-300 bg-white/50 focus:bg-white focus:border-blue-500 focus:outline-none transition-all shadow-inner answer-input', inputStatus]" 
+                            placeholder="點擊輸入"
+                            :disabled="inputStatus === 'correct'">
+                        
+                        <div class="mt-6 text-xl font-bold min-h-[32px] text-center" :class="{
+                            'text-emerald-500': inputStatus === 'correct',
+                            'text-red-500': inputStatus === 'incorrect',
+                            'text-amber-600': inputStatus === '' && feedbackMessage.includes('解答')
+                        }">
+                            {{ feedbackMessage }}
+                        </div>
+                    </div>
+                </div>
+
+                <div v-else class="text-center text-slate-500 p-8">
+                    目前沒有題目資料，請確認試算表設定。
+                </div>
+
+            </div>
+        </div>
+
+        <!-- =================== Modal: 確認返回 =================== -->
+        <div v-if="showConfirmModal" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex flex-col justify-start pt-24 md:pt-32 items-center p-6 text-center rounded-3xl">
+            <div class="bg-white rounded-2xl p-8 max-w-sm w-full shadow-2xl pop-in">
+                <div class="text-5xl text-rose-500 mb-4"><i class="ph-fill ph-warning-circle"></i></div>
+                <h2 class="text-2xl font-bold text-slate-800 mb-2">確定要返回嗎？</h2>
+                <p class="text-slate-600 mb-8">目前的練習進度將會重置。</p>
+                <div class="flex gap-4 justify-center">
+                    <button @click="showConfirmModal = false; resetInputFocus()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 px-6 rounded-xl transition-all">取消</button>
+                    <button @click="doBackToMenu" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 px-6 rounded-xl transition-all">確定返回</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== Modal: 階段過關結算 =================== -->
+        <div v-if="showStageModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-start pt-24 md:pt-32 items-center p-6 text-center rounded-3xl">
+            <div class="text-6xl text-blue-500 mb-4 animate-bounce"><i class="ph-fill ph-flag-checkered"></i></div>
+            <h2 class="text-3xl font-black text-blue-700 mb-2">第 {{ currentBatchIndex + 1 }} 關 完成！</h2>
+            <p class="text-slate-600 font-medium mb-4">您可以稍作休息，或繼續挑戰下一關。</p>
+            
+            <div class="text-xl text-blue-800 font-bold mb-6 bg-blue-100 py-2 px-6 rounded-full border-2 border-blue-300">
+                本關答對率 (一次答對): <span class="text-2xl">{{ stageScore }}</span>%
+            </div>
+            <div class="text-lg text-blue-700 font-medium mb-6">
+                本關耗時: <span>{{ Number(currentStageTime).toFixed(2) }}</span> 秒
+            </div>
+            
+            <div class="flex gap-4">
+                <button @click="restNow" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl transition-all">
+                    先休息 <i class="ph-bold ph-house"></i>
+                </button>
+                <button @click="nextStage" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                    下一關 <i class="ph-bold ph-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- =================== Modal: 最終過關結算 =================== -->
+        <div v-if="showSuccessModal" class="absolute inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col justify-start pt-24 md:pt-32 items-center p-6 text-center rounded-3xl">
+            <div class="text-6xl text-yellow-500 mb-4 animate-bounce"><i class="ph-fill ph-trophy"></i></div>
+            <h2 class="text-3xl font-black text-blue-700 mb-2">
+                <span v-if="gameMode === 'survival'">時間到！生存挑戰結束！</span>
+                <span v-else-if="gameMode === 'sprint20'">20題挑戰完成！</span>
+                <span v-else>太棒了！單元全部完成！</span>
+            </h2>
+            <p class="text-slate-600 font-medium mb-4">
+                <span v-if="gameMode === 'survival'">您在「{{ currentUnit }}」生存賽中奮戰了 3 分鐘！</span>
+                <span v-else>您已經完成了「{{ currentUnit }}」的題目挑戰。</span>
+            </p>
+            
+            <div class="text-xl text-emerald-800 font-bold mb-2 bg-emerald-100 py-2 px-6 rounded-full border-2 border-emerald-300">
+                <span v-if="gameMode === 'survival'">總答對題數: <span class="text-2xl">{{ totalCorrectCount }}</span> 題</span>
+                <span v-else>總得分: <span class="text-2xl">{{ Math.round((totalCorrectCount / questions.length) * 100) }}</span> 分</span>
+            </div>
+            <div class="text-lg text-emerald-700 font-medium mb-6">
+                <span v-if="gameMode === 'survival'">生存時間: 180.00 秒</span>
+                <span v-else>總答題時間: <span>{{ Number(unitTotalTime).toFixed(2) }}</span> 秒</span>
+            </div>
+            
+            <div class="flex gap-4">
+                <button v-if="reviewItems.length > 0" @click="goToReview" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:-translate-y-1 transition-all flex items-center gap-2">
+                    專屬錯題講義 <i class="ph-bold ph-book-open"></i>
+                </button>
+                <button @click="doBackToMenu" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all">
+                    回單元選單 <i class="ph-bold ph-list"></i>
+                </button>
+                <button @click="showSuccessModal = false; showLeaderboardModal = true;" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all flex items-center gap-2">
+                    <i class="ph-bold ph-trophy"></i> 查看英雄榜
+                </button>
+            </div>
+        </div>
+
+        <!-- =================== Modal: 排行榜 =================== -->
+        <div v-if="showLeaderboardModal" class="absolute inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex flex-col justify-start pt-16 items-center p-6 text-center rounded-3xl">
+            <div class="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl pop-in flex flex-col max-h-[80vh]">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-3xl font-black text-indigo-700 flex items-center gap-2">
+                        <i class="ph-fill ph-trophy"></i> 英雄榜
+                    </h2>
+                    <button @click="showLeaderboardModal = false" class="text-slate-400 hover:text-slate-600 text-3xl transition-colors">
+                        <i class="ph-bold ph-x"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-6 flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+                    <div class="flex items-center gap-2 flex-1">
+                        <label class="font-bold text-slate-700 whitespace-nowrap">選擇單元：</label>
+                        <select v-model="leaderboardUnit" class="flex-1 px-4 py-2 rounded-xl border-2 border-indigo-200 focus:border-indigo-500 font-medium text-slate-700 w-full max-w-full">
+                            <option value="all">所有單元 (綜合)</option>
+                            <option v-for="unitObj in availableUnits" :value="unitObj.name">{{ unitObj.name }}</option>
+                        </select>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <label class="font-bold text-slate-700 whitespace-nowrap">模式：</label>
+                        <select v-model="leaderboardMode" class="flex-1 px-4 py-2 rounded-xl border-2 border-indigo-200 focus:border-indigo-500 font-medium text-slate-700 w-full max-w-full">
+                            <option value="trueHero">真英雄榜</option>
+                            <option value="sprint20">20題挑戰</option>
+                            <option value="survival">限時生存</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto bg-slate-50 rounded-2xl border border-slate-200">
+                    <table class="w-full text-left">
+                        <thead class="bg-indigo-100 text-indigo-800 sticky top-0 z-10">
+                            <tr>
+                                <th class="py-3 px-4 rounded-tl-2xl font-bold">排名</th>
+                                <th class="py-3 px-4 font-bold">挑戰者</th>
+                                <th class="py-3 px-4 font-bold">單元</th>
+                                <th class="py-3 px-4 font-bold">得分</th>
+                                <th class="py-3 px-4 font-bold">耗時</th>
+                                <th class="py-3 px-4 rounded-tr-2xl font-bold">紀錄時間</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-if="leaderboardLoading">
+                                <td colspan="6" class="text-center py-10 text-slate-500 font-medium">
+                                    <i class="ph-bold ph-spinner animate-spin text-2xl mb-2"></i><br>載入中...
+                                </td>
+                            </tr>
+                            <tr v-else-if="filteredLeaderboard.length === 0">
+                                <td colspan="6" class="text-center py-10 text-slate-500 font-medium">
+                                    目前還沒有紀錄喔！成為第一個上榜的人吧！
+                                </td>
+                            </tr>
+                            <tr v-else v-for="(record, idx) in filteredLeaderboard" :key="idx" :class="idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'" class="hover:bg-indigo-50 transition-colors border-b border-slate-100 last:border-b-0">
+                                <td class="py-3 px-4 font-black">
+                                    <span v-if="idx === 0" class="text-yellow-500 text-xl"><i class="ph-fill ph-medal"></i> 1</span>
+                                    <span v-else-if="idx === 1" class="text-slate-400 text-xl"><i class="ph-fill ph-medal"></i> 2</span>
+                                    <span v-else-if="idx === 2" class="text-amber-700 text-xl"><i class="ph-fill ph-medal"></i> 3</span>
+                                    <span v-else class="text-slate-500 px-2">{{ idx + 1 }}</span>
+                                </td>
+                                <td class="py-3 px-4 font-bold text-slate-700">{{ record.username }}</td>
+                                <td class="py-3 px-4 text-sm text-slate-600">{{ record.unit }}</td>
+                                <td class="py-3 px-4 font-bold text-emerald-600">{{ record.score }}分</td>
+                                <td class="py-3 px-4 font-medium text-blue-600">{{ Number(record.timeSpent).toFixed(2) }}秒</td>
+                                <td class="py-3 px-4 text-xs text-slate-400">{{ new Date(record.timestamp).toLocaleString('zh-TW', {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false}) }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- =================== 畫面三：專屬錯題講義 =================== -->
+        <div v-if="gameState === 'review'" class="flex-1 w-full overflow-y-auto p-4 md:p-8 flex flex-col items-center">
+            <div class="w-full max-w-3xl bg-white/90 backdrop-blur-md rounded-3xl p-6 md:p-10 shadow-xl border-2 border-amber-200 relative pop-in">
+                <h2 class="text-3xl font-black text-center text-amber-600 mb-2">
+                    <i class="ph-fill ph-book-open"></i> {{ currentUnit && currentUnit.includes('生詞本') ? currentUnit : '專屬錯題講義' }}
+                </h2>
+                <p class="text-center text-slate-500 mb-8 font-medium">
+                    {{ currentUnit && currentUnit.includes('生詞本') ? '這是您主動收藏的困難單字，趕快複習一下吧！' : '針對您剛才答錯或查過字典的字詞，為您重點複習！' }}
+                </p>
+
+                <div class="space-y-6 mb-8">
+                    <div v-for="(item, index) in reviewItems" :key="index" class="bg-amber-50 p-5 rounded-2xl border border-amber-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                                {{ item.vocab }}
+                                <button @click="toggleVocab(item)" class="hover:scale-110 transition-transform">
+                                    <i :class="[isVocab(item.vocab) ? 'ph-fill text-yellow-500' : 'ph-bold text-slate-300', 'ph-star text-xl']"></i>
+                                </button>
+                            </h3>
+                            <span class="bg-rose-100 text-rose-700 text-xs font-bold px-2 py-1 rounded-full">{{ item.word }}</span>
+                        </div>
+                        <p class="text-slate-700 font-medium whitespace-pre-wrap">{{ item.hint }}</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-center gap-4">
+                    <button @click="doBackToMenu" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 px-6 rounded-xl transition-all">
+                        回主選單 <i class="ph-bold ph-house"></i>
+                    </button>
+                    <button @click="startReinforcement" class="bg-rose-500 hover:bg-rose-600 text-white font-bold py-3 px-8 rounded-xl shadow-lg hover:-translate-y-1 transition-all flex items-center gap-2">
+                        強化記憶測驗 <i class="ph-bold ph-sword"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- 保持原本的腳本 -->
+    <script>
+        const { createApp, ref, computed, onMounted, nextTick, watch } = Vue;
+
+        // 這裡是您的試算表 ID
+        const SHEET_ID = '1ydMZu_8epF_gEQQ3IjVvbvOEstqehiP__wHsONd8alo';
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzEx9q1G45YmJqwuo4GMa77zzfHsaxrcq03woKK8HgQj6xhm9duqFB26cjlW0hdOFN_cw/exec';
+
+        createApp({
+            setup() {
+                const gameState = ref('menu'); // 'menu', 'playing', 'review'
+                const isReinforcementMode = ref(false); // 是否為強化/生詞模式
+                const batchStartTime = ref(0);
+                const availableUnits = ref([]); 
+                const currentUnit = ref('');
+                const batchSize = ref(10); // 每階段題數
+                const currentBatchIndex = ref(0);
+
+                const allDataRows = ref([]);
+                const questions = ref([]);
+                const currentIndex = ref(0); // 批次內的索引
+                const userAnswer = ref('');
+                const inputStatus = ref(''); 
+                const feedbackMessage = ref('');
+                const loading = ref(true);
+
+                // Game Modes
+                const gameMode = ref('trueHero'); // 'trueHero', 'sprint20', 'survival'
+                const survivalTimeLeft = ref(180); // 3 minutes
+                let survivalTimer = null;
+
+                // Modals and Score
+                const showConfirmModal = ref(false);
+                const showStageModal = ref(false);
+                const showSuccessModal = ref(false);
+                const showLeaderboardModal = ref(false);
+                const leaderboardData = ref([]);
+                const leaderboardLoading = ref(false);
+                const leaderboardUnit = ref('all');
+                const leaderboardMode = ref('trueHero'); // 'trueHero', 'sprint20', 'survival'
+                
+                const failedQuestions = ref(new Set()); // 紀錄當前批次曾經答錯或看解答的題目索引
+                const stageCorrectCount = ref(0); // 當前階段第一次就答對的數量
+                const totalCorrectCount = ref(0); // 整個單元第一次就答對的數量
+                const unitTotalTime = ref(0); // 整個單元耗費的總秒數
+                const currentStageTime = ref(0); // 當前關卡耗費的秒數
+                const correctQuestions = ref(new Set()); // 紀錄當前批次答對的題目索引
+                const unitFailedItems = ref([]); // 紀錄整個單元答錯或查過字典的題目物件
+
+                // Vocab and Review Bank
+                const vocabBook = ref(new Map());
+                const allReviewBanks = ref({});
+
+                const isVocab = (vocab) => vocabBook.value.has(vocab);
+
+                const toggleVocab = (item) => {
+                    if (vocabBook.value.has(item.vocab)) {
+                        vocabBook.value.delete(item.vocab);
+                    } else {
+                        vocabBook.value.set(item.vocab, item);
+                    }
+                    syncUserData();
+                };
+
+                const vocabBookList = computed(() => Array.from(vocabBook.value.values()));
+
+                const vocabBookUnits = computed(() => {
+                    const units = new Set();
+                    vocabBook.value.forEach(item => {
+                        if (item.unit) units.add(item.unit);
+                    });
+                    return Array.from(units).sort((a, b) => {
+                        const getNum = (s) => {
+                            const match = s.match(/\d+/);
+                            return match ? parseInt(match[0], 10) : 999;
+                        };
+                        return getNum(a) - getNum(b);
+                    });
+                });
+
+                const getVocabCountByUnit = (unit) => {
+                    let count = 0;
+                    vocabBook.value.forEach(item => {
+                        if (item.unit === unit) count++;
+                    });
+                    return count;
+                };
+
+                const hasReviewBankForCurrentUnit = computed(() => {
+                    return allReviewBanks.value[currentUnit.value] && allReviewBanks.value[currentUnit.value].length > 0;
+                });
+
+                const startReviewFromMenu = () => {
+                    unitFailedItems.value = [...allReviewBanks.value[currentUnit.value]];
+                    gameState.value = 'review';
+                };
+
+                const startVocabReview = (unitName = null) => {
+                    let items = Array.from(vocabBook.value.values());
+                    if (unitName) {
+                        items = items.filter(i => i.unit === unitName);
+                    }
+                    if (items.length === 0) return;
+                    
+                    unitFailedItems.value = items;
+                    currentUnit.value = unitName ? `${unitName} 生詞本` : '綜合生詞本';
+                    gameState.value = 'review';
+                };
+
+                const fetchLeaderboard = (retryCount = 3) => {
+                    if (!GAS_API_URL) return;
+                    leaderboardLoading.value = true;
+                    fetch(GAS_API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'getLeaderboard', data: { game: '字音字形填空' } })
+                    }).then(res => res.json()).then(res => {
+                        if (res.status === 'success') {
+                            leaderboardData.value = res.data;
+                            leaderboardLoading.value = false;
+                        } else {
+                            if (retryCount > 0) setTimeout(() => fetchLeaderboard(retryCount - 1), 1000);
+                            else leaderboardLoading.value = false;
+                        }
+                    }).catch(e => {
+                        console.error(e);
+                        if (retryCount > 0) setTimeout(() => fetchLeaderboard(retryCount - 1), 1000);
+                        else leaderboardLoading.value = false;
+                    });
+                };
+
+                watch(showLeaderboardModal, (newVal) => {
+                    if (newVal) {
+                        fetchLeaderboard();
+                        leaderboardUnit.value = currentUnit.value || 'all';
+                    }
+                });
+
+                const filteredLeaderboard = computed(() => {
+                    let data = leaderboardData.value;
+                    
+                    // 1. Filter by Unit (if not 'all')
+                    if (leaderboardUnit.value !== 'all') {
+                        data = data.filter(r => r.unit.startsWith(leaderboardUnit.value));
+                    }
+                    
+                    // 2. Filter by Mode
+                    if (leaderboardMode.value === 'trueHero') {
+                        data = data.filter(r => !r.unit.includes('(20題挑戰)') && !r.unit.includes('(限時生存)'));
+                    } else if (leaderboardMode.value === 'sprint20') {
+                        data = data.filter(r => r.unit.includes('(20題挑戰)'));
+                    } else if (leaderboardMode.value === 'survival') {
+                        data = data.filter(r => r.unit.includes('(限時生存)'));
+                    }
+                    
+                    // 3. Sort
+                    data.sort((a, b) => {
+                        if (b.score !== a.score) return b.score - a.score;
+                        return a.timeSpent - b.timeSpent; // lower time is better
+                    });
+                    
+                    return data.slice(0, 10);
+                });
+
+                const fetchUserData = () => {
+                    if (!GAS_API_URL || !window.currentUser) return;
+                    
+                    try {
+                        const localReview = localStorage.getItem(`${window.currentUser}_fillBlankReviewBank`);
+                        if (localReview) allReviewBanks.value = JSON.parse(localReview);
+                        
+                        const localVocab = localStorage.getItem(`${window.currentUser}_fillBlankVocabBook`);
+                        if (localVocab) {
+                            const arr = JSON.parse(localVocab);
+                            arr.forEach(item => vocabBook.value.set(item.vocab, item));
+                        }
+                    } catch(e) {}
+                    
+                    fetch(GAS_API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'getUserData', data: { username: window.currentUser } })
+                    }).then(res => res.json()).then(res => {
+                        if (res.status === 'success' && res.data) {
+                            if (res.data.fillBlankReviewBank) {
+                                allReviewBanks.value = res.data.fillBlankReviewBank;
+                                localStorage.setItem(`${window.currentUser}_fillBlankReviewBank`, JSON.stringify(allReviewBanks.value));
+                            }
+                            if (res.data.fillBlankVocabBook) {
+                                vocabBook.value.clear();
+                                res.data.fillBlankVocabBook.forEach(item => vocabBook.value.set(item.vocab, item));
+                                localStorage.setItem(`${window.currentUser}_fillBlankVocabBook`, JSON.stringify(res.data.fillBlankVocabBook));
+                            }
+                        }
+                    }).catch(e => console.error(e));
+                };
+
+                const syncUserData = () => {
+                    if (!GAS_API_URL || !window.currentUser) return;
+                    
+                    const reviewData = allReviewBanks.value;
+                    const vocabData = Array.from(vocabBook.value.values());
+                    
+                    localStorage.setItem(`${window.currentUser}_fillBlankReviewBank`, JSON.stringify(reviewData));
+                    localStorage.setItem(`${window.currentUser}_fillBlankVocabBook`, JSON.stringify(vocabData));
+                    
+                    fetch(GAS_API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'saveUserData',
+                            data: {
+                                username: window.currentUser,
+                                payload: {
+                                    fillBlankReviewBank: reviewData,
+                                    fillBlankVocabBook: vocabData
+                                }
+                            }
+                        })
+                    }).catch(e => console.error(e));
+                };
+
+                const addFailedItem = (item) => {
+                    if (item && !unitFailedItems.value.some(i => i.vocab === item.vocab)) {
+                        unitFailedItems.value.push(item);
+                    }
+                };
+
+                const reviewItems = computed(() => {
+                    return unitFailedItems.value;
+                });
+
+                // 計算當前批次的題目
+                const currentBatchQuestions = computed(() => {
+                    const start = currentBatchIndex.value * batchSize.value;
+                    const end = start + batchSize.value;
+                    return questions.value.slice(start, end);
+                });
+                
+                const totalBatches = computed(() => {
+                    if (questions.value.length === 0) return 0;
+                    return Math.ceil(questions.value.length / batchSize.value);
+                });
+
+                const currentQuestion = computed(() => {
+                    return currentBatchQuestions.value[currentIndex.value] || {};
+                });
+
+                // 分數計算
+                const stageScore = computed(() => {
+                    if (currentBatchQuestions.value.length === 0) return 0;
+                    return Math.round((stageCorrectCount.value / currentBatchQuestions.value.length) * 100);
+                });
+
+                const finalScore = computed(() => {
+                    if (questions.value.length === 0) return 0;
+                    return Math.round((totalCorrectCount.value / questions.value.length) * 100);
+                });
+                
+                const canResume = computed(() => {
+                    return questions.value.length > 0 && 
+                           questions.value[0].unit === currentUnit.value &&
+                           (currentBatchIndex.value > 0 || currentIndex.value > 0) &&
+                           !showSuccessModal.value;
+                });
+
+                const saveProgress = () => {
+                    const currentUser = window.localStorage.getItem('gameSession');
+                    if (!currentUser || questions.value.length === 0 || gameState.value !== 'playing') return;
+                    const progress = {
+                        unit: currentUnit.value,
+                        questions: questions.value,
+                        batchSize: batchSize.value,
+                        currentBatchIndex: currentBatchIndex.value,
+                        currentIndex: currentIndex.value,
+                        totalCorrectCount: totalCorrectCount.value,
+                        stageCorrectCount: stageCorrectCount.value,
+                        failedQuestions: Array.from(failedQuestions.value),
+                        correctQuestions: Array.from(correctQuestions.value),
+                        unitFailedItems: unitFailedItems.value
+                    };
+                    localStorage.setItem(`${currentUser}_fillBlankProgress`, JSON.stringify(progress));
+                };
+
+                const clearProgress = () => {
+                    const currentUser = window.localStorage.getItem('gameSession');
+                    if (!currentUser) return;
+                    localStorage.removeItem(`${currentUser}_fillBlankProgress`);
+                };
+
+                const restoreProgress = () => {
+                    const currentUser = window.localStorage.getItem('gameSession');
+                    if (!currentUser) return false;
+                    const saved = localStorage.getItem(`${currentUser}_fillBlankProgress`);
+                    if (saved) {
+                        try {
+                            const parsed = JSON.parse(saved);
+                            currentUnit.value = parsed.unit;
+                            questions.value = parsed.questions;
+                            batchSize.value = parsed.batchSize;
+                            currentBatchIndex.value = parsed.currentBatchIndex;
+                            currentIndex.value = parsed.currentIndex;
+                            totalCorrectCount.value = parsed.totalCorrectCount;
+                            stageCorrectCount.value = parsed.stageCorrectCount;
+                            failedQuestions.value = new Set(parsed.failedQuestions);
+                            correctQuestions.value = new Set(parsed.correctQuestions || []);
+                            unitFailedItems.value = parsed.unitFailedItems || [];
+                            return true;
+                        } catch (e) {
+                            clearProgress();
+                            return false;
+                        }
+                    }
+                    return false;
+                };
+
+                const startGame = () => {
+                    if (!currentUnit.value) return;
+                    
+                    // 只有正常模式才清空錯題庫，強化模式不清空
+                    if (!currentUnit.value.includes('測驗') && !currentUnit.value.includes('生詞本')) {
+                        if (allReviewBanks.value[currentUnit.value]) {
+                            delete allReviewBanks.value[currentUnit.value];
+                            syncUserData();
+                        }
+                    }
+                    
+                    isReinforcementMode.value = false;
+                    clearProgress();
+                    loadUnitData();
+                    gameState.value = 'playing';
+                    batchStartTime.value = Date.now();
+                    nextTick(() => {
+                        resetInputFocus();
+                    });
+                    
+                    if (gameMode.value === 'survival') {
+                        clearInterval(survivalTimer);
+                        survivalTimer = setInterval(() => {
+                            survivalTimeLeft.value--;
+                            if (survivalTimeLeft.value <= 0) {
+                                clearInterval(survivalTimer);
+                                endSurvivalGame();
+                            }
+                        }, 1000);
+                    }
+                };
+                
+                const resumeGame = () => {
+                    gameState.value = 'playing';
+                    batchStartTime.value = Date.now();
+                    nextTick(() => {
+                        resetInputFocus();
+                    });
+                };
+
+                const confirmBackToMenu = () => {
+                    if (gameMode.value === 'survival' && survivalTimer) {
+                        clearInterval(survivalTimer);
+                    }
+                    showConfirmModal.value = true;
+                };
+
+                const doBackToMenu = () => {
+                    if (showSuccessModal.value || gameState.value === 'review') {
+                        questions.value = []; // Reset completely since they finished
+                        clearProgress();
+                    } else {
+                        // Reset current batch progress
+                        currentIndex.value = 0;
+                        stageCorrectCount.value = 0;
+                        failedQuestions.value = new Set();
+                        correctQuestions.value = new Set();
+                        resetInput();
+                        clearProgress();
+                    }
+
+                    showConfirmModal.value = false;
+                    showStageModal.value = false;
+                    showSuccessModal.value = false;
+                    gameState.value = 'menu';
+                    if (survivalTimer) clearInterval(survivalTimer);
+                };
+
+                const endSurvivalGame = () => {
+                    gameState.value = 'menu'; // Or keep it playing to show modal
+                    showSuccessModal.value = true;
+                    unitTotalTime.value = 180;
+                    
+                    // 單元完成，將錯題存入錯題庫
+                    if (unitFailedItems.value.length > 0) {
+                        const bank = allReviewBanks.value[currentUnit.value] || [];
+                        unitFailedItems.value.forEach(item => {
+                            if (!bank.some(i => i.vocab === item.vocab)) bank.push(item);
+                        });
+                        allReviewBanks.value[currentUnit.value] = bank;
+                        syncUserData();
+                    }
+                    sendGameRecord();
+                    clearProgress();
+                };
+
+                const goToReview = () => {
+                    showSuccessModal.value = false;
+                    gameState.value = 'review';
+                };
+
+                const startReinforcement = () => {
+                    questions.value = shuffleArray(reviewItems.value);
+                    batchSize.value = 999;
+                    currentBatchIndex.value = 0;
+                    currentIndex.value = 0;
+                    failedQuestions.value = new Set();
+                    stageCorrectCount.value = 0;
+                    totalCorrectCount.value = 0;
+                    correctQuestions.value = new Set();
+                    unitFailedItems.value = []; // Reset for this reinforcement session
+                    gameState.value = 'playing';
+                    isReinforcementMode.value = true;
+                    batchStartTime.value = Date.now();
+                    resetInput();
+                };
+
+                const shuffleArray = (array) => {
+                    const arr = [...array];
+                    for (let i = arr.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [arr[i], arr[j]] = [arr[j], arr[i]];
+                    }
+                    return arr;
+                };
+
+                const restNow = () => {
+                    showStageModal.value = false;
+                    currentBatchIndex.value++;
+                    currentIndex.value = 0;
+                    stageCorrectCount.value = 0;
+                    failedQuestions.value = new Set();
+                    resetInput();
+                    batchStartTime.value = Date.now();
+                    gameState.value = 'menu';
+                    saveProgress();
+                };
+
+                // 提取單元數字以便排序
+                const getUnitNumber = (unitStr) => {
+                    const match = unitStr.match(/\d+/);
+                    if (match) return parseInt(match[0], 10);
+                    const map = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+                    const cMatch = unitStr.match(/[一二三四五六七八九十]/);
+                    if (cMatch) return map[cMatch[0]];
+                    return 999;
+                };
+
+                const parseAndAddData = (data, fallbackSheetName) => {
+                    let headerRow = data.table.cols.map(c => c.label);
+                    let startIndex = 0;
+                    if (!headerRow.some(label => label)) {
+                        headerRow = data.table.rows[0].c.map(cell => cell ? cell.v : '');
+                        startIndex = 1;
+                    }
+
+                    const unitIdx = headerRow.findIndex(c => c && c.includes('單元'));
+                    const typeIdx = headerRow.findIndex(c => c && c.includes('類別'));
+                    const vocabIdx = headerRow.findIndex(c => c && (c.includes('詞彙') || c.includes('成語') || c.includes('字形')));
+                    const charIdx = headerRow.findIndex(c => c && (c.includes('字形') || c.includes('國字')));
+                    const bopomofoIdx = headerRow.findIndex(c => c && c.includes('注音'));
+                    const expIdx = headerRow.findIndex(c => c && c.includes('解釋'));
+                    const sentenceIdx = headerRow.findIndex(c => c && c.includes('例句'));
+
+                    if (vocabIdx === -1) return;
+
+                    // 如果工作表名稱是純數字，加上「第 X 單元」讓顯示更好看
+                    let formattedSheetName = fallbackSheetName;
+                    if (!isNaN(fallbackSheetName)) {
+                        formattedSheetName = `第 ${fallbackSheetName} 單元`;
+                    }
+
+                    for (let i = startIndex; i < data.table.rows.length; i++) {
+                        const row = data.table.rows[i];
+                        if (!row || !row.c) continue;
+
+                        const type = typeIdx >= 0 ? (row.c[typeIdx]?.v || '') : '';
+                        const vocab = row.c[vocabIdx]?.v;
+                        let targetChar = charIdx >= 0 ? (row.c[charIdx]?.v || '') : '';
+                        if (targetChar === '(無)' || targetChar === '(教材無特別註解)') targetChar = '';
+
+                        const bopomofo = bopomofoIdx >= 0 ? (row.c[bopomofoIdx]?.v || '') : '';
+                        const exp = expIdx >= 0 ? (row.c[expIdx]?.v || '') : '';
+                        const sentence = sentenceIdx >= 0 ? (row.c[sentenceIdx]?.v || '') : '';
+                        
+                        let unit = unitIdx >= 0 && row.c[unitIdx]?.v ? row.c[unitIdx].v : formattedSheetName;
+
+                        if (!vocab) continue;
+
+                        // 判斷題型：
+                        let isShapeType = type.includes('字形') || (type.includes('試題補充') && targetChar);
+                        let isSoundType = type.includes('字音'); 
+
+                        if (isShapeType || isSoundType) {
+                            let answer = '';
+                            let hint = '';
+
+                            let cleanSentence = (sentence && sentence !== '(無)' && sentence !== '(教材無特別註解)') ? sentence : '';
+                            let cleanExp = (exp && exp !== '(無)' && exp !== '(教材無特別註解)') ? exp : '';
+                            let cleanBopomofo = (bopomofo && bopomofo !== '(無)' && bopomofo !== '(教材無特別註解)') ? bopomofo : '';
+
+                            let focusChar = targetChar.trim() || vocab.trim();
+
+                            if (isShapeType) {
+                                answer = focusChar;
+                                let maskedVocab = vocab;
+                                if (vocab.includes(focusChar)) {
+                                    maskedVocab = vocab.replace(new RegExp(focusChar, 'g'), '（　）');
+                                } else {
+                                    maskedVocab = `（　）` + (vocab !== focusChar ? ` (相關詞：${vocab})` : '');
+                                }
+
+                                hint = `請寫出「${maskedVocab}」缺少的國字。`;
+                                
+                                if (cleanSentence) {
+                                    hint += `\n例句：${cleanSentence.replace(new RegExp(vocab, 'g'), maskedVocab)}`;
+                                }
+                                
+                                let extras = [];
+                                if (cleanBopomofo) extras.push(`注音：${cleanBopomofo}`);
+                                if (cleanExp) extras.push(`解釋：${cleanExp}`);
+                                
+                                if (extras.length > 0) {
+                                    hint += `\n\n(${extras.join('，')})`;
+                                }
+                            } else if (isSoundType) {
+                                let targetBopomofo = cleanBopomofo.trim();
+                                if (targetBopomofo) {
+                                    const bopomofoParts = targetBopomofo.split(/\s+/);
+                                    if (bopomofoParts.length > 1 && vocab.includes(focusChar)) {
+                                        const charIndex = vocab.indexOf(focusChar);
+                                        if (charIndex !== -1 && charIndex < bopomofoParts.length) {
+                                            targetBopomofo = bopomofoParts[charIndex];
+                                        }
+                                    }
+                                }
+
+                                answer = targetBopomofo;
+                                if (!answer) continue;
+                                
+                                hint = `📍 請輸入「${vocab}」中「${focusChar}」字的注音。`;
+                                if (cleanSentence) hint += `\n例句：${cleanSentence}`;
+                                if (cleanExp) hint += `\n解釋：${cleanExp}`;
+                            }
+
+                            if (answer && hint) {
+                                allDataRows.value.push({
+                                    unit: unit.trim(),
+                                    word: answer, 
+                                    hint: hint.trim(), 
+                                    vocab: vocab.trim() 
+                                });
+                            }
+                        }
+                    }
+                };
+
+                const fetchAndScanData = async () => {
+                    loading.value = true;
+                    feedbackMessage.value = '';
+                    
+                    try {
+                        const baseUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json`;
+                        
+                        const defaultRes = await fetch(baseUrl);
+                        const defaultText = await defaultRes.text();
+                        const defaultJson = JSON.parse(defaultText.match(/(?<=.*\().*(?=\);)/s)[0]);
+                        const defaultSig = defaultJson.sig;
+                        
+                        parseAndAddData(defaultJson, '預設單元');
+
+                        const sheetNamesToTry = [];
+                        const chineseMap = ['一','二','三','四','五','六','七','八','九','十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十'];
+                        for(let i=1; i<=20; i++) {
+                            sheetNamesToTry.push(i.toString());
+                            sheetNamesToTry.push(`第${chineseMap[i-1]}單元`);
+                        }
+
+                        const promises = sheetNamesToTry.map(name => {
+                            return fetch(`${baseUrl}&sheet=${encodeURIComponent(name)}`)
+                                .then(res => res.text())
+                                .then(text => {
+                                    if (text.includes('"status":"error"')) return null;
+                                    const json = JSON.parse(text.match(/(?<=.*\().*(?=\);)/s)[0]);
+                                    if (json.sig === defaultSig) return null;
+                                    return { json, name };
+                                }).catch(() => null);
+                        });
+
+                        const results = await Promise.all(promises);
+                        const seenSigs = new Set([defaultSig]);
+                        results.forEach(res => {
+                            if (res && res.json && !seenSigs.has(res.json.sig)) {
+                                seenSigs.add(res.json.sig);
+                                parseAndAddData(res.json, res.name);
+                            }
+                        });
+
+                        const uniqueUnitsNames = [...new Set(allDataRows.value.map(item => item.unit).filter(u => u))];
+                        uniqueUnitsNames.sort((a, b) => getUnitNumber(a) - getUnitNumber(b));
+                        
+                        availableUnits.value = uniqueUnitsNames.map(name => {
+                            return {
+                                name: name,
+                                count: allDataRows.value.filter(item => item.unit === name).length
+                            };
+                        });
+
+                        if (availableUnits.value.length > 0) {
+                            if (!restoreProgress()) {
+                                const urlParams = new URLSearchParams(window.location.search);
+                                const unitParam = urlParams.get('unit');
+                                if (unitParam && uniqueUnitsNames.includes(unitParam)) {
+                                    currentUnit.value = unitParam;
+                                } else {
+                                    currentUnit.value = availableUnits.value[0].name;
+                                }
+                            }
+                        } else {
+                            feedbackMessage.value = '試算表中找不到任何「字形」或「字音」的題目資料';
+                        }
+                    } catch (error) {
+                        console.error("讀取資料失敗", error);
+                        feedbackMessage.value = '讀取資料失敗，請確認網路連線';
+                    } finally {
+                        loading.value = false;
+                    }
+                };
+
+                const loadUnitData = () => {
+                    const unitData = allDataRows.value.filter(item => item.unit === currentUnit.value);
+                    if (unitData.length > 0) {
+                        let baseQuestions = shuffleArray(unitData);
+                        
+                        if (gameMode.value === 'sprint20') {
+                            questions.value = baseQuestions.slice(0, 20);
+                            batchSize.value = 999; // one single batch
+                        } else if (gameMode.value === 'survival') {
+                            // Generate a large pool of questions to ensure they never run out in 3 minutes
+                            let survivalPool = [];
+                            for(let i = 0; i < 5; i++) {
+                                survivalPool = survivalPool.concat(shuffleArray(unitData));
+                            }
+                            questions.value = survivalPool;
+                            batchSize.value = 999; // one single batch
+                            survivalTimeLeft.value = 180;
+                        } else {
+                            // trueHero mode
+                            questions.value = baseQuestions;
+                        }
+                        
+                        feedbackMessage.value = '';
+                    } else {
+                        questions.value = [];
+                        feedbackMessage.value = '此單元目前沒有題目資料';
+                    }
+                    currentBatchIndex.value = 0;
+                    currentIndex.value = 0;
+                    failedQuestions.value = new Set();
+                    correctQuestions.value = new Set();
+                    unitFailedItems.value = [];
+                    stageCorrectCount.value = 0;
+                    totalCorrectCount.value = 0;
+                    unitTotalTime.value = 0;
+                    resetInput();
+                };
+
+                const sendGameRecord = () => {
+                    if (!GAS_API_URL || !window.currentUser) return;
+                    if (currentUnit.value.includes('生詞本') || isReinforcementMode.value) return; // 複習模式不列入總排行榜
+
+                    const wrongWords = unitFailedItems.value.map(i => i.vocab);
+                    let unitTitle = currentUnit.value;
+                    const totalQuestions = questions.value.length;
+                    let score = Math.round((totalCorrectCount.value / totalQuestions) * 100);
+                    
+                    if (gameMode.value === 'sprint20') {
+                        unitTitle += ' (20題挑戰)';
+                    } else if (gameMode.value === 'survival') {
+                        unitTitle += ' (限時生存)';
+                        // 生存模式：總答對題數即為得分（方便排序）
+                        score = totalCorrectCount.value;
+                    }
+
+                    fetch(GAS_API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'saveGameRecord',
+                            data: {
+                                username: window.currentUser,
+                                game: '字音字形填空',
+                                unit: unitTitle,
+                                score: score,
+                                timeSpent: unitTotalTime.value,
+                                wrongAnswers: wrongWords
+                            }
+                        })
+                    }).catch(e => console.error(e));
+                };
+
+                const checkAnswer = () => {
+                    if (!userAnswer.value.trim()) return;
+
+                    if (userAnswer.value.trim() === currentQuestion.value.word) {
+                        inputStatus.value = 'correct';
+                        feedbackMessage.value = '🎉 答對了！太棒了！';
+                        
+                        // 計分機制
+                        if (!failedQuestions.value.has(currentIndex.value)) {
+                            stageCorrectCount.value++;
+                            totalCorrectCount.value++;
+                            
+                            // 強化模式中答對，從錯題庫移除
+                            if (isReinforcementMode.value && currentQuestion.value && currentQuestion.value.unit) {
+                                const qUnit = currentQuestion.value.unit;
+                                if (allReviewBanks.value[qUnit]) {
+                                    allReviewBanks.value[qUnit] = allReviewBanks.value[qUnit].filter(i => i.vocab !== currentQuestion.value.vocab);
+                                    if (allReviewBanks.value[qUnit].length === 0) {
+                                        delete allReviewBanks.value[qUnit];
+                                    }
+                                    syncUserData();
+                                }
+                            }
+                        }
+                        correctQuestions.value.add(currentIndex.value);
+                        
+                        saveProgress();
+
+                        // 延遲 0.5 秒後自動換下一題
+                        setTimeout(() => {
+                            if (inputStatus.value === 'correct') nextQuestion();
+                        }, 500);
+                    } else {
+                        inputStatus.value = 'incorrect';
+                        feedbackMessage.value = '🤔 好像不太對喔，再試試看！';
+                        failedQuestions.value.add(currentIndex.value);
+                        addFailedItem(currentQuestion.value);
+                        saveProgress();
+                    }
+                };
+
+                const showAnswer = () => {
+                    userAnswer.value = currentQuestion.value.word;
+                    inputStatus.value = '';
+                    feedbackMessage.value = '💡 解答在這裡！';
+                    failedQuestions.value.add(currentIndex.value);
+                    addFailedItem(currentQuestion.value);
+                    saveProgress();
+                };
+
+                const trackDictClick = (vocab, dictType) => {
+                    if (currentQuestion.value && currentQuestion.value.vocab === vocab) {
+                        addFailedItem(currentQuestion.value);
+                        saveProgress();
+                    }
+                    if (window.trackDictClickGlobal) {
+                        window.trackDictClickGlobal(vocab, dictType);
+                    }
+                };
+
+                const recordSkipIfNotCorrect = () => {
+                    if (inputStatus.value !== 'correct' && !correctQuestions.value.has(currentIndex.value)) {
+                        failedQuestions.value.add(currentIndex.value);
+                        addFailedItem(currentQuestion.value);
+                    }
+                };
+
+                const nextQuestion = () => {
+                    recordSkipIfNotCorrect();
+                    if (currentIndex.value < currentBatchQuestions.value.length - 1) {
+                        currentIndex.value++;
+                        resetInput();
+                        saveProgress();
+                    } else {
+                        inputStatus.value = 'correct';
+                        
+                        // 檢查是否還有下一批
+                        const hasNextStage = (currentBatchIndex.value + 1) * batchSize.value < questions.value.length;
+                        
+                        const timeSpent = Math.round((Date.now() - batchStartTime.value) / 10) / 100;
+                        currentStageTime.value = timeSpent;
+                        unitTotalTime.value = Math.round((unitTotalTime.value + timeSpent) * 100) / 100;
+
+                        if (!hasNextStage) {
+                            sendGameRecord();
+                        }
+
+                        if (hasNextStage) {
+                            showStageModal.value = true;
+                        } else {
+                            showSuccessModal.value = true;
+                            
+                            // 單元完成，將錯題存入錯題庫
+                            if (!isReinforcementMode.value && unitFailedItems.value.length > 0) {
+                                const bank = allReviewBanks.value[currentUnit.value] || [];
+                                unitFailedItems.value.forEach(item => {
+                                    if (!bank.some(i => i.vocab === item.vocab)) bank.push(item);
+                                });
+                                allReviewBanks.value[currentUnit.value] = bank;
+                                syncUserData();
+                            }
+                            
+                            clearProgress();
+                        }
+                    }
+                };
+
+                const nextStage = () => {
+                    showStageModal.value = false;
+                    currentBatchIndex.value++;
+                    currentIndex.value = 0;
+                    stageCorrectCount.value = 0;
+                    failedQuestions.value = new Set();
+                    correctQuestions.value = new Set();
+                    resetInput();
+                    batchStartTime.value = Date.now();
+                    saveProgress();
+                };
+
+                const prevQuestion = () => {
+                    recordSkipIfNotCorrect();
+                    if (currentIndex.value > 0) {
+                        currentIndex.value--;
+                        resetInput();
+                        saveProgress();
+                    }
+                };
+
+                const resetInput = () => {
+                    userAnswer.value = '';
+                    inputStatus.value = '';
+                    feedbackMessage.value = '';
+                    resetInputFocus();
+                };
+
+                const resetInputFocus = () => {
+                    nextTick(() => {
+                        const input = document.getElementById('answerInput');
+                        if (input && !input.disabled && !showConfirmModal.value && !showStageModal.value && !showSuccessModal.value) {
+                            input.focus();
+                        }
+                    });
+                };
+
+                onMounted(() => {
+                    fetchUserData();
+                    fetchAndScanData();
+                });
+
+                return {
+                    gameState,
+                    startGame,
+                    confirmBackToMenu,
+                    doBackToMenu,
+                    availableUnits,
+                    currentUnit,
+                    batchSize,
+                    currentBatchIndex,
+                    currentBatchQuestions,
+                    questions,
+                    currentQuestion,
+                    currentIndex,
+                    userAnswer,
+                    inputStatus,
+                    feedbackMessage,
+                    loading,
+                    checkAnswer,
+                    showAnswer,
+                    nextQuestion,
+                    prevQuestion,
+                    nextStage,
+                    showConfirmModal,
+                    showStageModal,
+                    showSuccessModal,
+                    stageScore,
+                    finalScore,
+                    resetInputFocus,
+                    canResume,
+                    resumeGame,
+                    restNow,
+                    totalBatches,
+                    reviewItems,
+                    goToReview,
+                    startReinforcement,
+                    trackDictClick,
+                    vocabBookList,
+                    isVocab,
+                    toggleVocab,
+                    hasReviewBankForCurrentUnit,
+                    startReviewFromMenu,
+                    startVocabReview,
+                    allReviewBanks,
+                    vocabBookUnits,
+                    getVocabCountByUnit,
+                    totalCorrectCount,
+                    unitTotalTime,
+                    currentStageTime,
+                    showLeaderboardModal,
+                    leaderboardData,
+                    leaderboardLoading,
+                    leaderboardUnit,
+                    leaderboardMode,
+                    filteredLeaderboard,
+                    gameMode,
+                    survivalTimeLeft
+                };
+            }
+        }).mount('#app');
+
+        // =================== 全域 Vanilla JS 登入與追蹤邏輯 ===================
+        window.currentUser = null;
+
+        window.trackDictClickGlobal = function(word, dictType) {
+            if (!GAS_API_URL) return;
+            fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'logDictClick',
+                    data: {
+                        username: window.currentUser || '訪客',
+                        game: '字音字形填空',
+                        word: word,
+                        dictType: dictType
+                    }
+                })
+            }).catch(e => console.error(e));
+        };
+
+        // =================== 登入與返回大廳邏輯 ===================
+        window.onload = () => {
+            const savedSession = localStorage.getItem('gameSession');
+            if (savedSession) {
+                window.currentUser = savedSession;
+                const greeting = document.getElementById('user-greeting');
+                const greetingName = document.getElementById('user-greeting-name');
+                if (greeting && greetingName) {
+                    greetingName.textContent = window.currentUser;
+                    greeting.classList.remove('hidden');
+                    greeting.classList.add('flex');
+                }
+            } else {
+                window.location.href = 'index.html';
+            }
+        };
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+
+
+    </script>
+</body>
+
+</html>

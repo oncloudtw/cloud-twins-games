@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>方寸語文：遊戲大廳</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+        }
+
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+    </style>
+</head>
+
+<body class="text-slate-800 flex flex-col items-center p-4 md:p-8 relative">
+
+    <div id="user-greeting" class="absolute right-4 top-4 text-sm font-bold text-slate-500 bg-white/80 px-4 py-2 rounded-xl shadow-sm hidden flex-col items-end gap-1 z-50">
+        <div>Hi, <span id="user-greeting-name"></span></div>
+        <button id="btn-logout" class="text-xs text-slate-400 hover:text-slate-600 underline">登出</button>
+    </div>
+
+    <!-- Header -->
+    <header class="text-center mb-8 mt-12 w-full flex-shrink-0 pop-in">
+        <h1 class="text-4xl md:text-5xl font-black text-blue-600 mb-4 tracking-wider drop-shadow-sm flex justify-center items-center gap-3">
+            <i class="ph-fill ph-game-controller"></i> 遊戲大廳
+        </h1>
+        <p class="text-blue-800/80 font-bold text-lg md:text-xl">請選擇您想要挑戰的遊戲</p>
+    </header>
+
+    <!-- 登入蓋板 (Login Modal) -->
+    <div id="modal-login" class="fixed inset-0 bg-slate-900/80 backdrop-blur-md z-50 flex flex-col justify-center items-center p-4 md:p-6 text-center">
+        <div class="bg-white rounded-3xl p-6 md:p-8 max-w-sm w-full shadow-2xl pop-in max-h-[90vh] overflow-y-auto">
+            <div class="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mx-auto mb-4 text-4xl shrink-0">
+                <i class="ph-bold ph-user-circle"></i>
+            </div>
+            <h2 class="text-3xl font-black text-slate-800 mb-1">玩家登入</h2>
+            <p class="text-slate-500 mb-8 text-sm font-medium">請輸入您的帳號與密碼，系統會自動為您建立紀錄。</p>
+
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">帳號</label>
+                    <input id="login-username" type="text"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all font-medium text-lg"
+                        placeholder="例如：暱稱">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-1">密碼</label>
+                    <input id="login-password" type="password"
+                        class="w-full px-4 py-3 rounded-xl border-2 border-slate-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all font-medium text-lg"
+                        placeholder="例如：預設密碼">
+                </div>
+
+                <div id="login-error" class="text-rose-500 text-sm font-bold text-center mt-2 hidden"></div>
+
+                <button id="btn-login"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg hover:-translate-y-1 transition-all flex justify-center items-center gap-2 mt-6 text-lg">
+                    <span>登入</span> <i class="ph-bold ph-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲選單 -->
+    <main id="game-menu" class="w-full max-w-4xl mx-auto flex flex-col md:flex-row gap-6 md:gap-10 justify-center items-stretch hidden pop-in">
+        
+        <!-- 成語連連看 -->
+        <a href="matching_game.html" class="flex-1 bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all border-2 border-emerald-100 group flex flex-col items-center text-center cursor-pointer relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-emerald-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex justify-center items-center mb-6 text-5xl shadow-inner relative z-10 group-hover:scale-110 transition-transform">
+                <i class="ph-fill ph-puzzle-piece"></i>
+            </div>
+            <h2 class="text-3xl font-black text-emerald-700 mb-3 relative z-10">成語連連看</h2>
+            <p class="text-slate-500 font-medium relative z-10">看懂成語，輕鬆配對！將左邊的成語連到右邊正確的解釋。</p>
+            <div class="mt-8 bg-emerald-600 text-white font-bold py-3 px-8 rounded-full shadow-md group-hover:bg-emerald-500 transition-colors relative z-10 flex items-center gap-2">
+                開始挑戰 <i class="ph-bold ph-caret-right"></i>
+            </div>
+        </a>
+
+        <!-- 字音字形填空 -->
+        <a href="fill_in_the_blank.html" class="flex-1 bg-white rounded-3xl p-8 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all border-2 border-blue-100 group flex flex-col items-center text-center cursor-pointer relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="w-24 h-24 bg-blue-100 text-blue-600 rounded-full flex justify-center items-center mb-6 text-5xl shadow-inner relative z-10 group-hover:scale-110 transition-transform">
+                <i class="ph-fill ph-pencil-simple"></i>
+            </div>
+            <h2 class="text-3xl font-black text-blue-700 mb-3 relative z-10">字音字形填空</h2>
+            <p class="text-slate-500 font-medium relative z-10">根據提示與注音，挑戰填入正確的成語字音與字形！</p>
+            <div class="mt-8 bg-blue-600 text-white font-bold py-3 px-8 rounded-full shadow-md group-hover:bg-blue-500 transition-colors relative z-10 flex items-center gap-2">
+                開始挑戰 <i class="ph-bold ph-caret-right"></i>
+            </div>
+        </a>
+
+    </main>
+
+    <script>
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzEx9q1G45YmJqwuo4GMa77zzfHsaxrcq03woKK8HgQj6xhm9duqFB26cjlW0hdOFN_cw/exec';
+        let currentUser = null;
+
+        window.onload = () => {
+            const savedSession = localStorage.getItem('gameSession');
+            if (savedSession) {
+                currentUser = savedSession;
+                document.getElementById('modal-login').classList.add('hidden');
+                document.getElementById('game-menu').classList.remove('hidden');
+                document.getElementById('game-menu').classList.add('flex');
+                
+                // 更新畫面的 Hi 某某
+                const greeting = document.getElementById('user-greeting');
+                const greetingName = document.getElementById('user-greeting-name');
+                if(greeting && greetingName) {
+                    greetingName.textContent = currentUser;
+                    greeting.classList.remove('hidden');
+                    greeting.classList.add('flex');
+                }
+            } else {
+                document.getElementById('login-username').focus();
+            }
+        };
+
+        async function doLoginAction() {
+            const btn = document.getElementById('btn-login');
+            const un = document.getElementById('login-username').value.trim();
+            const pw = document.getElementById('login-password').value.trim();
+            const errDiv = document.getElementById('login-error');
+
+            if (!un || !pw) {
+                errDiv.textContent = "請輸入帳號與密碼";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> <span>登入中...請稍候</span>';
+            btn.disabled = true;
+
+            if (!GAS_API_URL) {
+                // 若未設定 API URL，假登入直接放行
+                loginSuccess(un);
+                return;
+            }
+
+            try {
+                const res = await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'login',
+                        data: { username: un, password: pw }
+                    })
+                });
+
+                let json;
+                try {
+                    json = await res.json();
+                } catch (e) {
+                    throw new Error("無法解析伺服器回傳資料，請確認您已將 Apps Script 正確部署為「所有人」皆可存取。");
+                }
+
+                if (json.success) {
+                    loginSuccess(un);
+                } else {
+                    errDiv.textContent = json.error || "登入失敗";
+                    errDiv.classList.remove('hidden');
+                    btn.innerHTML = '<span>登入</span> <i class="ph-bold ph-arrow-right"></i>';
+                    btn.disabled = false;
+                }
+
+            } catch (e) {
+                console.error(e);
+                errDiv.textContent = e.message || "網路連線發生錯誤，請稍後再試";
+                errDiv.classList.remove('hidden');
+                btn.innerHTML = '<span>登入</span> <i class="ph-bold ph-arrow-right"></i>';
+                btn.disabled = false;
+            }
+        }
+
+        function loginSuccess(un) {
+            currentUser = un;
+            localStorage.setItem('gameSession', un);
+            document.getElementById('modal-login').classList.add('hidden');
+            document.getElementById('game-menu').classList.remove('hidden');
+            document.getElementById('game-menu').classList.add('flex');
+            
+            const btn = document.getElementById('btn-login');
+            btn.innerHTML = '<span>登入</span> <i class="ph-bold ph-arrow-right"></i>';
+            btn.disabled = false;
+
+            const greeting = document.getElementById('user-greeting');
+            const greetingName = document.getElementById('user-greeting-name');
+            if(greeting && greetingName) {
+                greetingName.textContent = currentUser;
+                greeting.classList.remove('hidden');
+                greeting.classList.add('flex');
+            }
+        }
+
+        document.getElementById('btn-logout').addEventListener('click', () => {
+            localStorage.removeItem('gameSession');
+            currentUser = null;
+            document.getElementById('user-greeting').classList.add('hidden');
+            document.getElementById('user-greeting').classList.remove('flex');
+            document.getElementById('game-menu').classList.add('hidden');
+            document.getElementById('game-menu').classList.remove('flex');
+            document.getElementById('modal-login').classList.remove('hidden');
+            document.getElementById('login-password').value = '';
+        });
+
+        document.getElementById('btn-login').addEventListener('click', doLoginAction);
+
+        document.getElementById('login-username').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') doLoginAction();
+        });
+        document.getElementById('login-password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') doLoginAction();
+        });
+    </script>
+</body>
+</html>
