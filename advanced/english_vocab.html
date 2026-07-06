@@ -150,12 +150,12 @@
                         </button>
                     </div>
                     <div v-else class="flex gap-4">
-                        <button @click="startGame" :disabled="loading || (!startRange || !endRange)" class="flex-1 bg-violet-500 hover:bg-violet-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <button @click="startGame" :disabled="loading || !startRange || !endRange" class="flex-1 bg-violet-500 hover:bg-violet-600 text-white font-bold py-4 rounded-xl text-xl shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             <i v-if="loading" class="ph-bold ph-spinner animate-spin"></i>
                             <i v-else class="ph-bold ph-play"></i>
                             <span>{{ loading ? '載入中...' : '開始練習' }}</span>
                         </button>
-                        <button @click="showLeaderboardModal = true" :disabled="loading || (!startRange || !endRange)" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-6 rounded-xl text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
+                        <button @click="showLeaderboardModal = true" :disabled="loading || !startRange || !endRange" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-6 rounded-xl text-lg shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
                             <i class="ph-bold ph-trophy"></i> 英雄榜
                         </button>
                     </div>
@@ -751,14 +751,11 @@
                 };
 
                 const startGame = () => {
-                    if ((!startRange || !endRange).value) return;
+                    if (!startRange.value || !endRange.value) return;
                     
-                    // 只有正常模式才清空錯題庫，強化模式不清空
-                    if ((!startRange || !endRange).value.includes('測驗') && (!startRange || !endRange).value.includes('生詞本')) {
-                        if (allReviewBanks.value[currentUnit.value]) {
-                            delete allReviewBanks.value[currentUnit.value];
-                            syncUserData();
-                        }
+                    if (allReviewBanks.value[currentUnit.value]) {
+                        delete allReviewBanks.value[currentUnit.value];
+                        syncUserData();
                     }
                     
                     isReinforcementMode.value = false;
