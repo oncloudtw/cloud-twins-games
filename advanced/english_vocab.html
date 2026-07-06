@@ -695,7 +695,7 @@
                 
                 const canResume = computed(() => {
                     return questions.value.length > 0 && 
-                           questions.value[0].unit === currentUnit.value &&
+                           currentUnit.value === `${startRange.value}-${endRange.value}` &&
                            (currentBatchIndex.value > 0 || currentIndex.value > 0) &&
                            !showSuccessModal.value;
                 });
@@ -732,6 +732,11 @@
                         try {
                             const parsed = JSON.parse(saved);
                             currentUnit.value = parsed.unit;
+                            if (parsed.unit && parsed.unit.includes('-')) {
+                                const parts = parsed.unit.split('-');
+                                startRange.value = parseInt(parts[0], 10);
+                                endRange.value = parseInt(parts[1], 10);
+                            }
                             questions.value = parsed.questions;
                             batchSize.value = parsed.batchSize;
                             currentBatchIndex.value = parsed.currentBatchIndex;
