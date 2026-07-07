@@ -620,6 +620,7 @@
                         body: JSON.stringify({ action: 'getUserData', data: { username: window.currentUser } })
                     }).then(res => res.json()).then(res => {
                         if (res.status === 'success' && res.data) {
+                            window.lastGasPayload = res.data;
                             if (res.data.fillBlankReviewBank) {
                                 allReviewBanks.value = res.data.fillBlankReviewBank;
                                 localStorage.setItem(`${window.currentUser}_fillBlankReviewBank`, JSON.stringify(allReviewBanks.value));
@@ -651,10 +652,10 @@
                             action: 'saveUserData',
                             data: {
                                 username: window.currentUser,
-                                payload: {
+                                payload: Object.assign({}, window.lastGasPayload || {}, {
                                     fillBlankReviewBank: reviewData,
                                     fillBlankVocabBook: vocabData
-                                }
+                                })
                             }
                         })
                     }).catch(e => console.error(e));

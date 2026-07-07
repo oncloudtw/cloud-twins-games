@@ -620,6 +620,7 @@
                         body: JSON.stringify({ action: 'getUserData', data: { username: window.currentUser } })
                     }).then(res => res.json()).then(res => {
                         if (res.status === 'success' && res.data) {
+                            window.lastGasPayload = res.data;
                             if (res.data.englishVocabReviewBank) {
                                 allReviewBanks.value = res.data.englishVocabReviewBank;
                                 localStorage.setItem(`${window.currentUser}_englishVocabReviewBank`, JSON.stringify(allReviewBanks.value));
@@ -652,10 +653,10 @@
                             action: 'saveUserData',
                             data: {
                                 username: window.currentUser,
-                                payload: {
+                                payload: Object.assign({}, window.lastGasPayload || {}, {
                                     englishVocabReviewBank: reviewData,
                                     englishVocabVocabBook: vocabData
-                                }
+                                })
                             }
                         })
                     }).catch(e => console.error(e));
