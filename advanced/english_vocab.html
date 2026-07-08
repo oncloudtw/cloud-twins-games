@@ -209,6 +209,9 @@
                                 <button v-if="currentQuestion.vocab" @click="toggleVocab(currentQuestion)" class="ml-2 hover:scale-110 transition-transform">
                                     <i :class="[isVocab(currentQuestion.vocab) ? 'ph-fill text-yellow-500' : 'ph-bold text-slate-300', 'ph-star text-2xl']"></i>
                                 </button>
+                                <button v-if="currentQuestion.vocab" @click="playPronunciation(currentQuestion.vocab)" class="ml-2 hover:scale-110 transition-transform text-violet-400 hover:text-violet-600" title="聆聽發音">
+                                    <i class="ph-bold ph-speaker-high text-2xl"></i>
+                                </button>
                             </div>
                             
                             <!-- 三大字典按鈕 (隱藏) -->
@@ -415,6 +418,9 @@
                                 <button @click="toggleVocab(item)" class="hover:scale-110 transition-transform">
                                     <i :class="[isVocab(item.vocab) ? 'ph-fill text-yellow-500' : 'ph-bold text-slate-300', 'ph-star text-xl']"></i>
                                 </button>
+                                <button @click="playPronunciation(item.vocab)" class="ml-2 hover:scale-110 transition-transform text-slate-400 hover:text-violet-600" title="聆聽發音">
+                                    <i class="ph-bold ph-speaker-high text-xl"></i>
+                                </button>
                             </h3>
                             <span class="bg-rose-100 text-rose-700 text-xs font-bold px-2 py-1 rounded-full">{{ item.word }}</span>
                         </div>
@@ -492,6 +498,13 @@
                 const allReviewBanks = ref({});
 
                 const isVocab = (vocab) => vocabBook.value.has(vocab);
+
+                                const playPronunciation = (text) => {
+                    if (!window.speechSynthesis) return;
+                    const msg = new SpeechSynthesisUtterance(text);
+                    msg.lang = 'en-US';
+                    window.speechSynthesis.speak(msg);
+                };
 
                 const toggleVocab = (item) => {
                     if (vocabBook.value.has(item.vocab)) {
@@ -1198,6 +1211,7 @@
                     vocabBookList,
                     isVocab,
                     toggleVocab,
+                    playPronunciation,
                     hasReviewBankForCurrentUnit,
                     startReviewFromMenu,
                     startVocabReview,
