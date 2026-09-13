@@ -82,6 +82,9 @@ function handleRequest(e, method) {
       case 'login':
         result = handleLogin(data);
         break;
+      case 'register':
+        result = handleRegister(data);
+        break;
       case 'saveGameRecord':
         result = handleSaveGameRecord(data);
         break;
@@ -112,6 +115,7 @@ function handleRequest(e, method) {
 function handleLogin(data) {
   const username = (data.username || '').toString().trim();
   const password = (data.password || '').toString().trim();
+  const createIfNotFound = !!data.createIfNotFound;
   
   if (!username || !password) {
     return { success: false, error: '請輸入帳號與密碼' };
@@ -133,10 +137,37 @@ function handleLogin(data) {
     }
   }
   
-  // 帳號不存在，自動註冊為學生
+  // 帳號不存在
+  if (createIfNotFound) {
+    const twTime = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss");
+    sheet.appendRow([username, password, 'student', twTime]);
+    return { success: true, role: 'student', message: '已成功建立新帳號' };
+  } else {
+    return { success: false, code: 'USER_NOT_FOUND', userNotFound: true, error: '找不到此帳號' };
+  }
+}
+
+function handleRegister(data) {
+  const username = (data.username || '').toString().trim();
+  const password = (data.password || '').toString().trim();
+  
+  if (!username || !password) {
+    return { success: false, error: '請輸入帳號與密碼' };
+  }
+  
+  const ss = SpreadsheetApp.openById(CONFIG.SPREADSHEET_ID);
+  const sheet = ss.getSheetByName('Users');
+  const values = sheet.getDataRange().getValues();
+  
+  for (let i = 1; i < values.length; i++) {
+    if (values[i][0] == username) {
+      return { success: false, error: '此帳號已存在' };
+    }
+  }
+  
   const twTime = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss");
   sheet.appendRow([username, password, 'student', twTime]);
-  return { success: true, role: 'student', message: '已為您自動建立新帳號' };
+  return { success: true, role: 'student', message: '已成功建立新帳號' };
 }
 
 function handleSaveGameRecord(data) {

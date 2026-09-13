@@ -15,6 +15,8 @@ function doPost(e) {
     switch (action) {
       case 'login':
         return login(data);
+      case 'register':
+        return register(data);
       case 'logDictClick':
         return logDictClick(data);
       case 'saveGameRecord':
@@ -40,7 +42,7 @@ function doPost(e) {
 }
 
 /**
- * 處理 GET 請求 (可用來測試 API 是否活著)
+ * 處理來自前端的 GET 請求 (可用來測試 API 是否活著)
  */
 function doGet(e) {
   return ContentService.createTextOutput("Cloud Twins Games API is running.");
@@ -248,8 +250,9 @@ function getLeaderboard(data) {
  */
 function login(data) {
   try {
-    var username = data.username;
-    var password = data.password;
+    var username = (data.username || '').toString().trim();
+    var password = (data.password || '').toString().trim();
+    var createIfNotFound = !!data.createIfNotFound;
     
     var ss = SpreadsheetApp.openById(SHEET_ID);
     var sheet = ss.getSheetByName('Users');
@@ -264,10 +267,12 @@ function login(data) {
     var values = sheet.getDataRange().getValues();
     var found = false;
     var pwdMatch = false;
+    var userRole = 'student';
     
     for (var i = 1; i < values.length; i++) { // 假設第一列是標題列
       if (values[i][0] == username) {
         found = true;
+        userRole = values[i][2] || 'student';
         if (values[i][1] == password) {
           pwdMatch = true;
         }
@@ -277,13 +282,89 @@ function login(data) {
     
     if (found && pwdMatch) {
       return ContentService.createTextOutput(JSON.stringify({ 
-        success: true 
+        success: true,
+        role: userRole
       })).setMimeType(ContentService.MimeType.JSON);
     } else if (found && !pwdMatch) {
       return ContentService.createTextOutput(JSON.stringify({ 
         success: false,
         error: "密碼錯誤"
       })).setMimeType(ContentService.MimeType.JSON);
+    } else {
+      if (createIfNotFound) {
+        var twTime = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss");
+        sheet.appendRow([username, password, 'student', twTime]);
+        return ContentService.createTextOutput(JSON.stringify({ 
+          success: true,
+          role: 'student',
+          message: '已成功建立新帳號'
+        })).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        return ContentService.createTextOutput(JSON.stringify({ 
+          success: false,
+          code: 'USER_NOT_FOUND',
+          userNotFound: true,
+          error: "找不到此帳號"
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, 
+      error: e.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 處理玩家註冊帳號
+ */
+function register(data) {
+  try {
+    var username = (data.username || '').toString().trim();
+    var password = (data.password || '').toString().trim();
+    
+    if (!username || !password) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: false, 
+        error: '請輸入帳號與密碼' 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var ss = SpreadsheetApp.openById(SHEET_ID);
+    var sheet = ss.getSheetByName('Users');
+    
+    if (!sheet) {
+      sheet = ss.insertSheet('Users');
+      sheet.appendRow(['Username', 'Password', 'Role', 'CreatedAt']);
+      sheet.getRange('A1:D1').setFontWeight('bold');
+    }
+    
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (values[i][0] == username) {
+        return ContentService.createTextOutput(JSON.stringify({ 
+          success: false, 
+          error: '此帳號已存在' 
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    
+    var twTime = Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss");
+    sheet.appendRow([username, password, 'student', twTime]);
+    
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: true, 
+      role: 'student', 
+      message: '已成功建立新帳號' 
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (e) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, 
+      error: e.toString() 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}ype(ContentService.MimeType.JSON);
     } else {
       return ContentService.createTextOutput(JSON.stringify({ 
         success: false,
